@@ -1,8 +1,9 @@
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { build } from "esbuild";
 
 const outDir = "dist";
+const docsDir = "docs";
 
 await rm(outDir, { recursive: true, force: true });
 await mkdir(`${outDir}/assets`, { recursive: true });
@@ -28,7 +29,7 @@ const cssLink = existsSync(`${outDir}/assets/main.css`)
   : "";
 const html = sourceHtml
   .replace(
-    '    <script type="module" src="/src/main.ts"></script>',
+    /    <script type="module" data-entry="game">[\s\S]*?<\/script>/,
     `    <script type="importmap">
       {
         "imports": {
@@ -42,3 +43,7 @@ ${cssLink}    <script type="module" src="./assets/main.js"></script>`
 
 await writeFile(`${outDir}/index.html`, html);
 await copyFile("package.json", `${outDir}/package-meta.json`);
+await writeFile(`${outDir}/.nojekyll`, "");
+
+await rm(docsDir, { recursive: true, force: true });
+await cp(outDir, docsDir, { recursive: true });

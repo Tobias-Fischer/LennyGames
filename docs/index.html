@@ -9,13 +9,14 @@
   <body>
     <canvas id="game-canvas" aria-label="Police and Crimes game canvas"></canvas>
     <div id="ui-root"></div>
-    <script type="module" data-entry="game">
-      if (location.hostname.endsWith(".github.io")) {
-        const basePath = location.pathname.endsWith("/") ? location.pathname : `${location.pathname}/`;
-        location.replace(`${basePath}docs/`);
-      } else {
-        await import("/src/main.ts");
+    <script type="importmap">
+      {
+        "imports": {
+          "@babylonjs/core/": "https://cdn.jsdelivr.net/npm/@babylonjs/core@9.6.2/"
+        }
       }
     </script>
+    <link rel="stylesheet" href="./assets/main.css" />
+    <script type="module" src="./assets/main.js"></script>
   </body>
 </html>
