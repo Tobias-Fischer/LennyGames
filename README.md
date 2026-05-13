@@ -2,6 +2,12 @@
 
 A first-person, Minecraft-style browser game prototype for iPad Safari and desktop browsers.
 
+## Play Online
+
+Once GitHub Pages finishes deploying, open:
+
+https://tobias-fischer.github.io/LennyGames/
+
 ## Run Locally
 
 ```sh
