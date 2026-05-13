@@ -27,13 +27,17 @@ export class VoxelWorld {
   private readonly definitions = new Map<string, BlockDefinition>();
   private readonly initialKeys = new Set<string>();
   private readonly saved: SavedWorld;
+  private readonly floorBlockIds = new Set<string>();
 
   constructor(
     private readonly scene: Scene,
     private readonly theme: ThemePack
   ) {
     theme.blocks.forEach((block) => this.definitions.set(block.id, block));
-    this.saved = loadSavedWorld(theme.id);
+    theme.blocks
+      .filter((block) => /floor|lot|sidewalk|grass|pad|zone/i.test(block.id))
+      .forEach((block) => this.floorBlockIds.add(block.id));
+    this.saved = loadSavedWorld(theme.id, theme.worldVersion);
     this.buildBaseGround();
     this.buildSpawnBlocks(theme.spawnScene.blocks);
     this.restoreSavedBlocks();
@@ -43,8 +47,44 @@ export class VoxelWorld {
     return `${x},${y},${z}`;
   }
 
-  getHeightAt(_x: number, _z: number): number {
-    return 2.9;
+  getHeightAt(x: number, z: number): number {
+    const gridX = Math.round(x / blockSize);
+    const gridZ = Math.round(z / blockSize);
+    let top = 0;
+    this.blocks.forEach((block) => {
+      if (block.x === gridX && block.z === gridZ && this.floorBlockIds.has(block.typeId)) {
+        top = Math.max(top, (block.y + 1) * blockSize);
+      }
+    });
+    return Math.max(2, top) + 0.9;
+  }
+
+  collidesWithPlayer(position: Vector3): boolean {
+    const radius = 0.48;
+    const feet = position.y - 0.82;
+    const head = position.y + 0.45;
+    const samples = [
+      [position.x - radius, position.z - radius],
+      [position.x + radius, position.z - radius],
+      [position.x - radius, position.z + radius],
+      [position.x + radius, position.z + radius]
+    ];
+
+    return samples.some(([x, z]) => {
+      const gridX = Math.round(x / blockSize);
+      const gridZ = Math.round(z / blockSize);
+      for (const block of this.blocks.values()) {
+        if (block.x !== gridX || block.z !== gridZ || this.floorBlockIds.has(block.typeId)) {
+          continue;
+        }
+        const bottom = block.y * blockSize;
+        const top = bottom + blockSize;
+        if (top > feet && bottom < head) {
+          return true;
+        }
+      }
+      return false;
+    });
   }
 
   pickFromCamera(position: Vector3, forward: Vector3, distance = 8): PickedBlock | null {
@@ -66,7 +106,7 @@ export class VoxelWorld {
     const x = picked.x + Math.round(picked.normal.x);
     const y = picked.y + Math.round(picked.normal.y);
     const z = picked.z + Math.round(picked.normal.z);
-    if (y < 0 || y > 9 || Math.abs(x) > 30 || Math.abs(z) > 30) {
+    if (y < 0 || y > 10 || Math.abs(x) > 46 || Math.abs(z) > 46) {
       return false;
     }
     const key = VoxelWorld.key(x, y, z);
@@ -108,20 +148,24 @@ export class VoxelWorld {
   }
 
   private buildBaseGround(): void {
-    const ground = MeshBuilder.CreateGround("town-ground", { width: 90, height: 90 }, this.scene);
+    const ground = MeshBuilder.CreateGround("town-ground", { width: 130, height: 130 }, this.scene);
     const material = new StandardMaterial("ground-material", this.scene);
     material.diffuseColor = Color3.FromHexString("#6fc66b");
     ground.material = material;
 
-    const road = MeshBuilder.CreateBox("main-road", { width: 12, height: 0.08, depth: 90 }, this.scene);
-    road.position.set(0, 0.04, 0);
+    const road = MeshBuilder.CreateBox("main-road", { width: 12, height: 0.05, depth: 125 }, this.scene);
+    road.position.set(0, 0.08, 0);
     const roadMaterial = new StandardMaterial("road-material", this.scene);
     roadMaterial.diffuseColor = Color3.FromHexString("#3f4652");
     road.material = roadMaterial;
 
-    const crossing = MeshBuilder.CreateBox("cross-road", { width: 90, height: 0.09, depth: 8 }, this.scene);
-    crossing.position.set(0, 0.06, -16);
+    const crossing = MeshBuilder.CreateBox("cross-road", { width: 125, height: 0.05, depth: 8 }, this.scene);
+    crossing.position.set(0, 0.09, -24);
     crossing.material = roadMaterial;
+
+    const northRoad = MeshBuilder.CreateBox("north-cross-road", { width: 92, height: 0.05, depth: 8 }, this.scene);
+    northRoad.position.set(8, 0.1, 24);
+    northRoad.material = roadMaterial;
   }
 
   private buildSpawnBlocks(blocks: SpawnBlock[]): void {

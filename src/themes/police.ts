@@ -1,94 +1,98 @@
-import type { SpawnBlock, ThemePack } from "../game/types";
+import type { ThemePack } from "../game/types";
+import { WorldBuilder } from "../game/WorldBuilder";
 
-const blocks: SpawnBlock[] = [];
+const world = new WorldBuilder();
 
-function addBlock(x: number, y: number, z: number, typeId: string, protectedBlock = false): void {
-  blocks.push({ x, y, z, typeId, protected: protectedBlock });
-}
+world.building({
+  x1: -14,
+  x2: -4,
+  z1: -6,
+  z2: 4,
+  height: 4,
+  floor: "station-floor",
+  wall: "station-wall",
+  roof: "station-roof",
+  protected: true,
+  openings: [
+    { side: "south", start: -10, end: -8, maxY: 3 },
+    { side: "east", start: -1, end: 1, maxY: 3 }
+  ]
+});
+world.posts(-14, -4, -6, 4, 1, 4, "police-blue");
+world.stripe(-11, -7, -7, 3, "police-blue");
+world.stripe(-11, -7, -7, 4, "police-blue");
+world.floor(-11, -7, -10, -7, "sidewalk", true);
+world.floor(-13, -5, -4, 2, "station-floor", true);
 
-function addFloor(x1: number, x2: number, z1: number, z2: number, typeId: string, protectedBlock = false): void {
-  for (let x = x1; x <= x2; x += 1) {
-    for (let z = z1; z <= z2; z += 1) {
-      addBlock(x, 0, z, typeId, protectedBlock);
-    }
+world.building({
+  x1: -19,
+  x2: -13,
+  z1: 5,
+  z2: 13,
+  height: 4,
+  floor: "jail-floor",
+  wall: "jail-wall",
+  roof: "jail-roof",
+  protected: true,
+  openings: [{ side: "south", start: -17, end: -15, maxY: 3 }]
+});
+for (let x = -18; x <= -14; x += 2) {
+  for (let y = 1; y <= 3; y += 1) {
+    world.block(x, y, 6, "bars", true);
   }
 }
+world.floor(-18, -14, 8, 11, "jail-zone", true);
 
-function addWalls(
-  x1: number,
-  x2: number,
-  z1: number,
-  z2: number,
-  height: number,
-  typeId: string,
-  protectedBlock = false,
-  doorAt?: { side: "north" | "south" | "east" | "west"; start: number; end: number }
-): void {
-  for (let y = 1; y <= height; y += 1) {
-    for (let x = x1; x <= x2; x += 1) {
-      const southDoor = doorAt?.side === "south" && x >= doorAt.start && x <= doorAt.end && y <= 2;
-      const northDoor = doorAt?.side === "north" && x >= doorAt.start && x <= doorAt.end && y <= 2;
-      if (!southDoor) {
-        addBlock(x, y, z1, typeId, protectedBlock);
-      }
-      if (!northDoor) {
-        addBlock(x, y, z2, typeId, protectedBlock);
-      }
-    }
-    for (let z = z1 + 1; z <= z2 - 1; z += 1) {
-      const westDoor = doorAt?.side === "west" && z >= doorAt.start && z <= doorAt.end && y <= 2;
-      const eastDoor = doorAt?.side === "east" && z >= doorAt.start && z <= doorAt.end && y <= 2;
-      if (!westDoor) {
-        addBlock(x1, y, z, typeId, protectedBlock);
-      }
-      if (!eastDoor) {
-        addBlock(x2, y, z, typeId, protectedBlock);
-      }
-    }
-  }
-}
+world.building({
+  x1: 8,
+  x2: 16,
+  z1: -19,
+  z2: -11,
+  height: 4,
+  floor: "shop-floor",
+  wall: "shop-wall",
+  roof: "shop-roof",
+  protected: true,
+  openings: [{ side: "west", start: -16, end: -14, maxY: 3 }]
+});
+world.stripe(10, 14, -20, 3, "shop-sign");
+world.floor(5, 7, -17, -13, "sidewalk", true);
 
-function addFlatRoof(x1: number, x2: number, z1: number, z2: number, y: number, typeId: string): void {
-  for (let x = x1; x <= x2; x += 1) {
-    for (let z = z1; z <= z2; z += 1) {
-      addBlock(x, y, z, typeId, true);
-    }
-  }
-}
+world.building({
+  x1: 15,
+  x2: 24,
+  z1: 12,
+  z2: 20,
+  height: 4,
+  floor: "donut-floor",
+  wall: "donut-wall",
+  roof: "donut-roof",
+  protected: true,
+  openings: [{ side: "west", start: 15, end: 17, maxY: 3 }]
+});
+world.stripe(17, 22, 11, 3, "donut-sign");
+world.floor(12, 14, 14, 18, "sidewalk", true);
 
-function addSign(x: number, y: number, z: number, width: number, typeId: string): void {
-  for (let i = 0; i < width; i += 1) {
-    addBlock(x + i, y, z, typeId, true);
-  }
-}
+world.floor(-24, -16, -24, -16, "park-grass", true);
+world.floor(-23, -17, -23, -17, "training-pad", true);
+world.block(-20, 1, -20, "target-red", true);
+world.block(-20, 2, -20, "target-white", true);
+world.block(-20, 3, -20, "target-red", true);
+world.block(-23, 1, -17, "tree-trunk", true);
+world.block(-23, 2, -17, "tree-leaf", true);
+world.block(-22, 2, -17, "tree-leaf", true);
+world.block(-23, 2, -18, "tree-leaf", true);
+world.block(-24, 2, -17, "tree-leaf", true);
 
-addFloor(-9, -2, 3, 9, "station-floor", true);
-addWalls(-9, -2, 3, 9, 3, "station-wall", true, { side: "south", start: -6, end: -5 });
-addFlatRoof(-9, -2, 3, 9, 4, "station-roof");
-addSign(-7, 3, 2, 3, "police-blue");
-addBlock(-6, 1, 2, "door", true);
-addBlock(-5, 1, 2, "door", true);
-
-addFloor(-11, -8, 8, 12, "jail-floor", true);
-addWalls(-11, -8, 8, 12, 3, "jail-wall", true, { side: "east", start: 9, end: 10 });
-addFlatRoof(-11, -8, 8, 12, 4, "jail-roof");
-for (let z = 9; z <= 11; z += 1) {
-  addBlock(-8, 1, z, "bars", true);
-  addBlock(-8, 2, z, "bars", true);
-}
-
-addFloor(6, 11, -13, -8, "shop-floor", true);
-addWalls(6, 11, -13, -8, 3, "shop-wall", true, { side: "west", start: -11, end: -10 });
-addFlatRoof(6, 11, -13, -8, 4, "shop-roof");
-addSign(7, 3, -14, 4, "shop-sign");
-
-addFloor(4, 8, 2, 6, "build-lot");
-addFloor(10, 14, 2, 6, "build-lot");
-addFloor(-3, 1, -11, -7, "build-lot");
+world.floor(2, 7, 9, 14, "build-lot");
+world.floor(3, 9, 18, 24, "build-lot");
+world.floor(-5, 2, 12, 20, "build-lot");
+world.floor(20, 27, -7, -1, "build-lot");
 
 export const policeTheme: ThemePack = {
   id: "police",
   displayName: "Police and Crimes",
+  worldVersion: 2,
   palette: {
     sky: "#87ceeb",
     policeBlue: "#2446c7",
@@ -98,19 +102,30 @@ export const policeTheme: ThemePack = {
   blocks: [
     { id: "blue", label: "Blue Block", color: "#2446c7" },
     { id: "station-floor", label: "Station Floor", color: "#dbeafe" },
-    { id: "station-wall", label: "Station Wall", color: "#f8fafc" },
-    { id: "station-roof", label: "Station Roof", color: "#2446c7" },
-    { id: "police-blue", label: "Police Sign", color: "#1d4ed8" },
-    { id: "door", label: "Door", color: "#8b5a2b" },
+    { id: "station-wall", label: "Station Wall", color: "#eff6ff" },
+    { id: "station-roof", label: "Station Roof", color: "#1e3a8a" },
+    { id: "police-blue", label: "Police Sign", color: "#2563eb" },
     { id: "jail-floor", label: "Jail Floor", color: "#cbd5e1" },
     { id: "jail-wall", label: "Jail Wall", color: "#64748b" },
     { id: "jail-roof", label: "Jail Roof", color: "#334155" },
+    { id: "jail-zone", label: "Jail Zone", color: "#facc15" },
     { id: "bars", label: "Bars", color: "#e2e8f0" },
     { id: "shop-floor", label: "Shop Floor", color: "#fef3c7" },
-    { id: "shop-wall", label: "Shop Wall", color: "#f97316" },
+    { id: "shop-wall", label: "Shop Wall", color: "#fb923c" },
     { id: "shop-roof", label: "Shop Roof", color: "#ef4444" },
     { id: "shop-sign", label: "Shop Sign", color: "#fde047" },
-    { id: "build-lot", label: "Build Lot", color: "#a7f3d0" }
+    { id: "donut-floor", label: "Donut Floor", color: "#fae8ff" },
+    { id: "donut-wall", label: "Donut Wall", color: "#f0abfc" },
+    { id: "donut-roof", label: "Donut Roof", color: "#a21caf" },
+    { id: "donut-sign", label: "Donut Sign", color: "#f9a8d4" },
+    { id: "build-lot", label: "Build Lot", color: "#a7f3d0" },
+    { id: "sidewalk", label: "Sidewalk", color: "#e5e7eb" },
+    { id: "park-grass", label: "Park Grass", color: "#86efac" },
+    { id: "training-pad", label: "Training Pad", color: "#93c5fd" },
+    { id: "target-red", label: "Target Red", color: "#ef4444" },
+    { id: "target-white", label: "Target White", color: "#f8fafc" },
+    { id: "tree-trunk", label: "Tree Trunk", color: "#8b5a2b" },
+    { id: "tree-leaf", label: "Tree Leaf", color: "#22c55e" }
   ],
   tools: [
     { id: "builder", kind: "buildTool", label: "Build", icon: "B" },
@@ -124,20 +139,21 @@ export const policeTheme: ThemePack = {
     { id: "police-man", role: "friendly", label: "Police Man", color: "#2446c7" },
     { id: "police-woman", role: "friendly", label: "Police Woman", color: "#2563eb" },
     { id: "criminal", role: "criminal", label: "Criminal", color: "#111827" },
-    { id: "civilian", role: "civilian", label: "Shop Worker", color: "#22c55e" }
+    { id: "civilian", role: "civilian", label: "Civilian", color: "#22c55e" }
   ],
   missions: [
     {
       id: "practice-call",
-      label: "Practice shop call",
-      alarmText: "Practice alarm at the shop.",
+      label: "Practice training call",
+      alarmText: "Practice alarm at the training park.",
       isPractice: true,
+      locationId: "training-park",
       objectives: [
-        { kind: "travel", text: "Practice alarm: go to the orange shop across the road." },
+        { kind: "travel", text: "Practice call: go to the blue training pad in the park." },
         { kind: "disarm", text: "Use the taser or blaster to tag the practice criminal." },
-        { kind: "cuff", text: "Use handcuffs when you are close." },
-        { kind: "transport", text: "Bring the cuffed criminal back to the jail." },
-        { kind: "jail", text: "Stand in the jail drop zone to finish the practice call." }
+        { kind: "cuff", text: "Go close and use cuffs." },
+        { kind: "transport", text: "Bring the cuffed criminal to the yellow jail zone." },
+        { kind: "jail", text: "Stand in the yellow jail zone to finish the practice call." }
       ]
     },
     {
@@ -145,25 +161,73 @@ export const policeTheme: ThemePack = {
       label: "Actual shop robbery",
       alarmText: "Actual alarm at the shop.",
       isPractice: false,
+      locationId: "corner-shop",
       objectives: [
-        { kind: "travel", text: "Alarm: get to the shop. The criminal has a toy hazard prop." },
-        { kind: "disarm", text: "Use taser or blaster to disarm from close range." },
-        { kind: "cuff", text: "Use handcuffs while close to the criminal." },
-        { kind: "transport", text: "Take the cuffed criminal to the station jail." },
-        { kind: "jail", text: "Stand in the jail drop zone to complete the call." }
+        { kind: "travel", text: "Alarm: go to the orange shop. Look for the criminal." },
+        { kind: "disarm", text: "Use taser or blaster from close range." },
+        { kind: "cuff", text: "Use cuffs when the criminal is stunned or disarmed." },
+        { kind: "transport", text: "Take the cuffed criminal to the yellow jail zone." },
+        { kind: "jail", text: "Stand in the yellow jail zone to complete the call." }
+      ]
+    },
+    {
+      id: "donut-call",
+      label: "Donut shop trouble",
+      alarmText: "Alarm at the donut shop.",
+      isPractice: false,
+      locationId: "donut-shop",
+      objectives: [
+        { kind: "travel", text: "Alarm: go to the purple donut shop." },
+        { kind: "disarm", text: "Use taser or blaster to stop the runaway criminal." },
+        { kind: "cuff", text: "Use cuffs when you are close enough." },
+        { kind: "transport", text: "Bring the cuffed criminal back to jail." },
+        { kind: "jail", text: "Stand in the yellow jail zone to finish." }
       ]
     }
   ],
+  missionLocations: [
+    {
+      id: "corner-shop",
+      label: "Corner Shop",
+      callPoint: { x: 16, y: 2.9, z: -28 },
+      criminalSpawn: { x: 24, y: 1, z: -30, yaw: Math.PI },
+      markerColor: "#f97316"
+    },
+    {
+      id: "donut-shop",
+      label: "Donut Shop",
+      callPoint: { x: 30, y: 2.9, z: 30 },
+      criminalSpawn: { x: 40, y: 1, z: 34, yaw: -1.4 },
+      markerColor: "#d946ef"
+    },
+    {
+      id: "training-park",
+      label: "Training Park",
+      callPoint: { x: -40, y: 2.9, z: -40 },
+      criminalSpawn: { x: -38, y: 1, z: -37, yaw: 0.7 },
+      markerColor: "#3b82f6"
+    }
+  ],
+  practiceArea: {
+    id: "training-park",
+    label: "Training Park",
+    callPoint: { x: -40, y: 2.9, z: -40 },
+    criminalSpawn: { x: -38, y: 1, z: -37, yaw: 0.7 },
+    markerColor: "#3b82f6"
+  },
   spawnScene: {
-    playerSpawn: { x: -11, y: 3, z: -16, yaw: 0.1 },
-    jailDrop: { x: -19, y: 2.9, z: 20 },
-    shopCall: { x: 17, y: 1, z: -20 },
-    policeCar: { x: -3, y: 0.75, z: -9, yaw: 0 },
-    blocks,
+    playerSpawn: { x: -18, y: 3, z: -34, yaw: 0 },
+    jailDrop: { x: -32, y: 2.9, z: 18 },
+    policeCar: { x: 6, y: 0.75, z: -34, yaw: 0 },
+    blocks: world.blocks,
     entities: [
-      { id: "officer-1", entityId: "police-man", x: -15, y: 1, z: 9, yaw: 1.2 },
-      { id: "officer-2", entityId: "police-woman", x: -7, y: 1, z: 15, yaw: -0.8 },
-      { id: "shop-worker", entityId: "civilian", x: 18, y: 1, z: -19, yaw: Math.PI }
+      { id: "officer-1", entityId: "police-man", x: -24, y: 1, z: -8, yaw: 0.8 },
+      { id: "officer-2", entityId: "police-woman", x: -10, y: 1, z: 2, yaw: -0.5 },
+      { id: "officer-3", entityId: "police-man", x: -29, y: 1, z: 17, yaw: 1.2 },
+      { id: "civilian-1", entityId: "civilian", x: 19, y: 1, z: -28, yaw: Math.PI },
+      { id: "civilian-2", entityId: "civilian", x: 35, y: 1, z: 29, yaw: -1.1 },
+      { id: "civilian-3", entityId: "civilian", x: -30, y: 1, z: -34, yaw: 0.2 },
+      { id: "civilian-4", entityId: "civilian", x: 7, y: 1, z: 28, yaw: 2.1 }
     ]
   }
 };

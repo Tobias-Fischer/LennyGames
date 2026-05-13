@@ -1,5 +1,5 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
-import type { EntityState, MissionDefinition, ThemePack } from "./types";
+import type { EntityState, MissionDefinition, MissionLocation, ThemePack } from "./types";
 
 export type MissionSignal =
   | "arrived-shop"
@@ -9,6 +9,7 @@ export type MissionSignal =
 
 interface ActiveMission {
   definition: MissionDefinition;
+  location: MissionLocation;
   objectiveIndex: number;
   cuffedCriminalId: string | null;
   complete: boolean;
@@ -24,8 +25,13 @@ export class MissionSystem {
     if (!definition) {
       throw new Error(`Unknown mission ${id}`);
     }
+    const location = this.theme.missionLocations.find((candidate) => candidate.id === definition.locationId);
+    if (!location) {
+      throw new Error(`Unknown mission location ${definition.locationId}`);
+    }
     this.active = {
       definition,
+      location,
       objectiveIndex: 0,
       cuffedCriminalId: null,
       complete: false
@@ -33,12 +39,17 @@ export class MissionSystem {
     return definition;
   }
 
-  update(playerPosition: Vector3, jailPosition: Vector3, shopPosition: Vector3): MissionSignal[] {
+  update(playerPosition: Vector3, jailPosition: Vector3): MissionSignal[] {
     if (!this.active || this.active.complete) {
       return [];
     }
     const signals: MissionSignal[] = [];
-    if (Vector3.Distance(playerPosition, shopPosition) < 7) {
+    const callPoint = new Vector3(
+      this.active.location.callPoint.x,
+      this.active.location.callPoint.y,
+      this.active.location.callPoint.z
+    );
+    if (Vector3.Distance(playerPosition, callPoint) < 8) {
       signals.push("arrived-shop");
     }
     if (this.active.cuffedCriminalId && Vector3.Distance(playerPosition, jailPosition) < 6) {
@@ -62,6 +73,10 @@ export class MissionSystem {
 
   getCuffedCriminalId(): string | null {
     return this.active?.cuffedCriminalId ?? null;
+  }
+
+  getActiveLocation(): MissionLocation | null {
+    return this.active?.location ?? null;
   }
 
   getHudText(): { title: string; text: string; alarmActive: boolean; complete: boolean } {

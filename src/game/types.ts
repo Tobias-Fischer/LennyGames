@@ -31,11 +31,20 @@ export interface MissionObjective {
 }
 
 export interface MissionDefinition {
-  id: "practice-call" | "actual-call";
+  id: string;
   label: string;
   alarmText: string;
   isPractice: boolean;
+  locationId: string;
   objectives: MissionObjective[];
+}
+
+export interface MissionLocation {
+  id: string;
+  label: string;
+  callPoint: { x: number; y: number; z: number };
+  criminalSpawn: { x: number; y: number; z: number; yaw?: number };
+  markerColor: string;
 }
 
 export interface SpawnBlock {
@@ -58,7 +67,6 @@ export interface SpawnEntity {
 export interface SpawnScene {
   playerSpawn: { x: number; y: number; z: number; yaw: number };
   jailDrop: { x: number; y: number; z: number };
-  shopCall: { x: number; y: number; z: number };
   policeCar: { x: number; y: number; z: number; yaw: number };
   blocks: SpawnBlock[];
   entities: SpawnEntity[];
@@ -67,11 +75,14 @@ export interface SpawnScene {
 export interface ThemePack {
   id: string;
   displayName: string;
+  worldVersion: number;
   palette: Record<string, string>;
   blocks: BlockDefinition[];
   tools: ToolDefinition[];
   entities: EntityDefinition[];
   missions: MissionDefinition[];
+  missionLocations: MissionLocation[];
+  practiceArea?: MissionLocation;
   spawnScene: SpawnScene;
 }
 
@@ -89,7 +100,9 @@ export interface HudState {
   alarmActive: boolean;
   missionTitle: string;
   missionText: string;
+  interactionText: string;
   driving: boolean;
+  muted: boolean;
 }
 
 export interface EntityState {

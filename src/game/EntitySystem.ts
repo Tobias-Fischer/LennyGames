@@ -11,6 +11,15 @@ interface EntityRecord extends EntityState {
   root: TransformNode;
   hazard?: Mesh;
   baseSpeed: number;
+  home: Vector3;
+  wanderSeed: number;
+  wanderRadius: number;
+}
+
+export interface EntityTarget {
+  criminal: EntityState;
+  position: Vector3;
+  distance: number;
 }
 
 export class EntitySystem {
@@ -26,8 +35,7 @@ export class EntitySystem {
     theme.spawnScene.entities.forEach((entity) => this.spawn(entity));
   }
 
-  spawnCriminalAt(position: Vector3, actual: boolean): EntityState | null {
-    const id = actual ? "actual-criminal" : "practice-criminal";
+  spawnCriminalAt(position: Vector3, actual: boolean, id = actual ? "actual-criminal" : "practice-criminal", yaw = Math.PI): EntityState | null {
     this.remove(id);
     return this.spawn({
       id,
@@ -35,13 +43,27 @@ export class EntitySystem {
       x: position.x,
       y: position.y,
       z: position.z,
-      yaw: Math.PI
+      yaw
     }, actual);
   }
 
   update(dt: number, playerPosition: Vector3): void {
     this.records.forEach((record) => {
-      if (record.role !== "criminal" || record.cuffed) {
+      if (record.role !== "criminal") {
+        const t = performance.now() / 1000 + record.wanderSeed;
+        const target = record.home.add(
+          new Vector3(Math.sin(t * 0.35) * record.wanderRadius, 0, Math.cos(t * 0.29) * record.wanderRadius)
+        );
+        const delta = target.subtract(record.root.position);
+        delta.y = 0;
+        if (delta.length() > 0.2) {
+          delta.normalize();
+          record.root.position.addInPlace(delta.scale(dt * 0.75));
+          record.root.rotation.y = Math.atan2(delta.x, delta.z);
+        }
+        return;
+      }
+      if (record.cuffed) {
         return;
       }
       const away = record.root.position.subtract(playerPosition);
@@ -68,6 +90,18 @@ export class EntitySystem {
       }
     });
     return nearest;
+  }
+
+  nearestCriminalTarget(position: Vector3, maxDistance: number): EntityTarget | null {
+    const criminal = this.nearestCriminal(position, maxDistance);
+    if (!criminal) {
+      return null;
+    }
+    return {
+      criminal,
+      position: criminal.root.position.clone(),
+      distance: Vector3.Distance(criminal.root.position, position)
+    };
   }
 
   stunNearest(position: Vector3): boolean {
@@ -111,7 +145,7 @@ export class EntitySystem {
     if (!criminal) {
       return;
     }
-    const follow = target.add(new Vector3(-1.3, -1.7, -1.3));
+    const follow = target.add(new Vector3(-1.3, -1.9, -1.3));
     criminal.root.position.copyFrom(follow);
   }
 
@@ -167,7 +201,10 @@ export class EntitySystem {
       disarmed: !actual,
       hasHazard: Boolean(hazard),
       hazard,
-      baseSpeed: actual ? 2.8 : 1.6
+      baseSpeed: actual ? 2.8 : 1.6,
+      home: root.position.clone(),
+      wanderSeed: Math.random() * 20,
+      wanderRadius: definition.role === "criminal" ? 0 : 3.2
     };
     this.records.set(spawn.id, record);
     return record;
