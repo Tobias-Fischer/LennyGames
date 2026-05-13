@@ -16,7 +16,6 @@ await build({
   target: ["es2020"],
   sourcemap: false,
   minify: true,
-  packages: "external",
   loader: {
     ".css": "css"
   },
@@ -30,14 +29,7 @@ const cssLink = existsSync(`${outDir}/assets/main.css`)
 const html = sourceHtml
   .replace(
     /    <script type="module" data-entry="game">[\s\S]*?<\/script>/,
-    `    <script type="importmap">
-      {
-        "imports": {
-          "@babylonjs/core/": "https://cdn.jsdelivr.net/npm/@babylonjs/core@9.6.2/"
-        }
-      }
-    </script>
-${cssLink}    <script type="module" src="./assets/main.js"></script>`
+    `${cssLink}    <script type="module" src="./assets/main.js"></script>`
   )
   .replace('content="/', 'content="./');
 
