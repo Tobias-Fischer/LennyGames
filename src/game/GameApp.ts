@@ -44,6 +44,7 @@ export class GameApp {
   private verticalVelocity = 0;
   private grounded = true;
   private activeVehicle: VehicleInstance | null = null;
+  private autoWalk = false;
   private interactionMessage = "";
   private interactionMessageUntil = 0;
 
@@ -90,6 +91,9 @@ export class GameApp {
       enterVehicle: () => this.toggleVehicle(),
       toggleMute: () => this.audio.toggleMute(),
       toggleMusic: () => this.audio.toggleMusic(),
+      toggleAutoWalk: () => this.toggleAutoWalk(),
+      turnLeft: () => this.turnBy(-0.38),
+      turnRight: () => this.turnBy(0.38),
       startPractice: () => this.startFirstMission(true),
       startActual: () => this.startFirstMission(false),
       changeWorld: () => this.onChangeWorld?.(),
@@ -164,7 +168,8 @@ export class GameApp {
     const right = this.camera.getDirection(Vector3.Right());
     right.y = 0;
     right.normalize();
-    const movement = forward.scale(this.input.moveZ).add(right.scale(this.input.moveX));
+    const autoForward = this.autoWalk && Math.abs(this.input.moveZ) < 0.08 ? 0.8 : 0;
+    const movement = forward.scale(Math.max(this.input.moveZ, autoForward)).add(right.scale(this.input.moveX));
     if (movement.length() > 1) {
       movement.normalize();
     }
@@ -195,7 +200,8 @@ export class GameApp {
     mesh.rotation.y += this.input.moveX * dt * (definition.turnSpeed ?? (definition.kind === "tank" ? 1.25 : 2.05));
     const forward = new Vector3(Math.sin(mesh.rotation.y), 0, Math.cos(mesh.rotation.y));
     const speed = definition.speed ?? (definition.kind === "bike" ? 14 : definition.kind === "plane" ? 18 : 12);
-    mesh.position.addInPlace(forward.scale(this.input.moveZ * dt * speed));
+    const autoForward = this.autoWalk && Math.abs(this.input.moveZ) < 0.08 ? 0.75 : 0;
+    mesh.position.addInPlace(forward.scale(Math.max(this.input.moveZ, autoForward) * dt * speed));
     mesh.position.x = Math.max(-114, Math.min(114, mesh.position.x));
     mesh.position.z = Math.max(-114, Math.min(114, mesh.position.z));
     const rideHeight = definition.kind === "plane" ? 4.7 : definition.kind === "bike" ? 2.8 : 3.7;
@@ -340,6 +346,22 @@ export class GameApp {
     }
   }
 
+  private toggleAutoWalk(): void {
+    this.autoWalk = !this.autoWalk;
+    this.say(this.autoWalk ? "Auto walk on. Use Turn L or Turn R." : "Auto walk off.");
+    this.audio.play("click");
+  }
+
+  private turnBy(amount: number): void {
+    if (this.activeVehicle) {
+      this.activeVehicle.mesh.rotation.y += amount;
+      this.camera.rotation.y = this.activeVehicle.mesh.rotation.y;
+    } else {
+      this.camera.rotation.y += amount;
+    }
+    this.audio.play("click");
+  }
+
   private checkHazards(dt: number): void {
     if (!this.missions.isActiveActual()) {
       return;
@@ -386,7 +408,8 @@ export class GameApp {
       driving: Boolean(this.activeVehicle),
       muted: this.audio.muted,
       musicEnabled: this.audio.musicEnabled,
-      missionActive: this.missions.isMissionActive()
+      missionActive: this.missions.isMissionActive(),
+      autoWalk: this.autoWalk
     });
   }
 

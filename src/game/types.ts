@@ -142,6 +142,7 @@ export interface HudState {
   muted: boolean;
   musicEnabled: boolean;
   missionActive: boolean;
+  autoWalk: boolean;
 }
 
 export interface EntityState {

@@ -7,6 +7,9 @@ export interface HudActions {
   enterVehicle(): void;
   toggleMute(): void;
   toggleMusic(): void;
+  toggleAutoWalk(): void;
+  turnLeft(): void;
+  turnRight(): void;
   startPractice(): void;
   startActual(): void;
   changeWorld(): void;
@@ -25,6 +28,7 @@ export class Hud {
   private readonly mute: HTMLButtonElement;
   private readonly music: HTMLButtonElement;
   private readonly drive: HTMLButtonElement;
+  private readonly walk: HTMLButtonElement;
   private readonly toolButtons = new Map<string, HTMLButtonElement>();
 
   constructor(tools: ToolDefinition[], actions: HudActions) {
@@ -93,11 +97,28 @@ export class Hud {
       this.makeSmallButton("Reset", actions.resetWorld)
     );
 
+    const movementControls = document.createElement("div");
+    movementControls.className = "movement-controls";
+    const turnLeft = this.makeSmallButton("Turn L", actions.turnLeft);
+    this.walk = this.makeSmallButton("Walk", actions.toggleAutoWalk);
+    const turnRight = this.makeSmallButton("Turn R", actions.turnRight);
+    movementControls.append(turnLeft, this.walk, turnRight);
+
     const desktopHint = document.createElement("div");
     desktopHint.className = "desktop-hint";
     desktopHint.textContent = "Desktop: WASD move, drag or click to look, E use, F ride, Space jump.";
 
-    this.root.append(topBar, crosshair, this.interaction, this.selectedTool, hotbar, rightActions, smallControls, desktopHint);
+    this.root.append(
+      topBar,
+      crosshair,
+      this.interaction,
+      this.selectedTool,
+      hotbar,
+      rightActions,
+      smallControls,
+      movementControls,
+      desktopHint
+    );
   }
 
   update(state: HudState): void {
@@ -110,6 +131,8 @@ export class Hud {
     this.drive.textContent = state.driving ? "Exit" : "Ride";
     this.mute.textContent = state.muted ? "Muted" : "Sound";
     this.music.textContent = state.musicEnabled ? "Music On" : "Music";
+    this.walk.textContent = state.autoWalk ? "Stop" : "Walk";
+    this.walk.classList.toggle("selected", state.autoWalk);
     this.toolButtons.forEach((button, toolId) => {
       button.classList.toggle("selected", toolId === state.selectedToolId);
     });

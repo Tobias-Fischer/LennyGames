@@ -320,6 +320,21 @@ body {
   font-size: 12px;
 }
 
+.movement-controls {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(362px, calc(env(safe-area-inset-bottom) + 362px));
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  gap: 7px;
+  pointer-events: auto;
+}
+
+.movement-controls .small-button.selected {
+  background: #ffe85c;
+  border-color: #1d4ed8;
+}
+
 .joystick {
   position: absolute;
   left: max(22px, env(safe-area-inset-left));
@@ -389,6 +404,11 @@ body {
     min-width: 68px;
     min-height: 34px;
     font-size: 11px;
+  }
+
+  .movement-controls {
+    bottom: max(382px, calc(env(safe-area-inset-bottom) + 382px));
+    grid-template-columns: repeat(3, 58px);
   }
 
   .selected-tool {
