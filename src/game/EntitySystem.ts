@@ -1,6 +1,7 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color.js";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
+import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture.js";
 import { Mesh } from "@babylonjs/core/Meshes/mesh.js";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder.js";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode.js";
@@ -26,13 +27,16 @@ export class EntitySystem {
   private readonly definitions = new Map<string, EntityDefinition>();
   private readonly records = new Map<string, EntityRecord>();
   private readonly materials = new Map<string, StandardMaterial>();
+  private readonly textures: DynamicTexture[] = [];
   private readonly missionTargetEntityId: string;
+  private readonly themeId: string;
 
   constructor(
     private readonly scene: Scene,
     theme: ThemePack,
     private readonly canMove: (from: Vector3, to: Vector3, radius?: number) => boolean = () => true
   ) {
+    this.themeId = theme.id;
     theme.entities.forEach((entity) => this.definitions.set(entity.id, entity));
     this.missionTargetEntityId = theme.entities.find((entity) => entity.role === "criminal")?.id ?? "criminal";
     theme.spawnScene.entities.forEach((entity) => this.spawn(entity));
@@ -171,6 +175,7 @@ export class EntitySystem {
   dispose(): void {
     this.records.forEach((record) => record.root.dispose(false, true));
     this.materials.forEach((material) => material.dispose());
+    this.textures.forEach((texture) => texture.dispose());
   }
 
   private spawn(spawn: SpawnEntity, actual = false): EntityState | null {
@@ -196,6 +201,7 @@ export class EntitySystem {
     hat.parent = root;
     hat.position.y = 3.05;
     hat.material = this.getMaterial(`${definition.id}-hat`, definition.role === "criminal" ? "#2b2f37" : "#2446c7");
+    this.addBubble(root, definition);
 
     let hazard: Mesh | undefined;
     if (definition.role === "criminal" && actual) {
@@ -239,6 +245,45 @@ export class EntitySystem {
     band.parent = root;
     band.position.set(0, 1.65, -0.45);
     band.material = this.getMaterial("cuff-silver", "#cbd5e1");
+  }
+
+  private addBubble(root: TransformNode, definition: EntityDefinition): void {
+    if (this.themeId !== "pizza") {
+      return;
+    }
+    const text =
+      definition.id === "cook"
+        ? "Order ready!"
+        : definition.id === "driver"
+          ? "Bike ready!"
+          : definition.role === "criminal"
+            ? "Pizza please!"
+            : "I want pizza!";
+    const texture = new DynamicTexture(`bubble-${root.name}`, { width: 256, height: 96 }, this.scene, true);
+    const context = texture.getContext() as unknown as CanvasRenderingContext2D;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, 256, 96);
+    context.strokeStyle = "#dc2626";
+    context.lineWidth = 6;
+    context.strokeRect(6, 6, 244, 84);
+    context.fillStyle = "#14213d";
+    context.font = "bold 26px Arial";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(text, 128, 49, 230);
+    texture.update();
+    const material = new StandardMaterial(`bubble-${root.name}-material`, this.scene);
+    material.diffuseTexture = texture;
+    material.diffuseColor = Color3.White();
+    material.specularColor = Color3.Black();
+    material.backFaceCulling = false;
+    const bubble = MeshBuilder.CreatePlane(`bubble-${root.name}`, { width: 3.2, height: 1.15 }, this.scene);
+    bubble.parent = root;
+    bubble.position.y = 4.1;
+    bubble.rotation.y = Math.PI;
+    bubble.material = material;
+    this.materials.set(material.name, material);
+    this.textures.push(texture);
   }
 
   private getMaterial(id: string, color: string): StandardMaterial {

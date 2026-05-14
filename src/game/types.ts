@@ -143,6 +143,12 @@ export interface HudState {
   musicEnabled: boolean;
   missionActive: boolean;
   autoWalk: boolean;
+  objectiveLabel: string;
+  objectiveDistance: number | null;
+  objectiveBearing: number | null;
+  stars: number;
+  badges: string[];
+  unlockedDecorations: string[];
 }
 
 export interface EntityState {

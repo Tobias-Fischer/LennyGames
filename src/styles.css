@@ -248,6 +248,70 @@ body {
   box-shadow: 0 5px 16px rgba(16, 24, 40, 0.12);
 }
 
+.objective-compass {
+  position: absolute;
+  left: 50%;
+  top: max(88px, calc(env(safe-area-inset-top) + 88px));
+  min-width: 170px;
+  max-width: min(360px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  display: none;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 2px solid rgba(16, 24, 40, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #14213d;
+  font-size: 13px;
+  line-height: 1.1;
+  font-weight: 900;
+  box-shadow: 0 5px 16px rgba(16, 24, 40, 0.12);
+}
+
+.objective-compass.visible {
+  display: grid;
+}
+
+.objective-arrow {
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-bottom: 28px solid #ef4444;
+  transform-origin: 50% 62%;
+  justify-self: center;
+}
+
+.objective-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badges-panel {
+  position: absolute;
+  right: max(96px, calc(env(safe-area-inset-right) + 96px));
+  bottom: max(116px, calc(env(safe-area-inset-bottom) + 116px));
+  display: none;
+  max-width: min(330px, calc(100vw - 220px));
+  padding: 10px 12px;
+  border: 2px solid rgba(16, 24, 40, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #14213d;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 800;
+  pointer-events: auto;
+  box-shadow: 0 5px 16px rgba(16, 24, 40, 0.14);
+}
+
+.badges-panel.open {
+  display: block;
+}
+
 .tool-button,
 .action-button,
 .small-button {
@@ -335,6 +399,20 @@ body {
   border-color: #1d4ed8;
 }
 
+.qa-controls {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  top: max(154px, calc(env(safe-area-inset-top) + 154px));
+  display: none;
+  grid-template-columns: repeat(2, 74px);
+  gap: 7px;
+  pointer-events: auto;
+}
+
+body.qa-mode .qa-controls {
+  display: grid;
+}
+
 .joystick {
   position: absolute;
   left: max(22px, env(safe-area-inset-left));
@@ -414,6 +492,18 @@ body {
   .selected-tool {
     bottom: max(76px, calc(env(safe-area-inset-bottom) + 76px));
     font-size: 12px;
+  }
+
+  .objective-compass {
+    top: max(120px, calc(env(safe-area-inset-top) + 120px));
+    font-size: 12px;
+  }
+
+  .badges-panel {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(430px, calc(env(safe-area-inset-bottom) + 430px));
+    max-width: none;
   }
 
   .interaction-prompt {

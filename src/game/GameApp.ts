@@ -14,6 +14,7 @@ import { Hud } from "./Hud";
 import { InputController } from "./InputController";
 import { InteractionSystem } from "./InteractionSystem";
 import { MissionSystem } from "./MissionSystem";
+import { loadProgress, saveProgress, type GameProgress } from "./storage";
 import type { ThemePack, ToolDefinition, VehicleDefinition } from "./types";
 import { VoxelWorld } from "./VoxelWorld";
 import { WorldLabelSystem } from "./WorldLabelSystem";
@@ -38,13 +39,17 @@ export class GameApp {
   private readonly interactions: InteractionSystem;
   private readonly vehicles: VehicleInstance[];
   private readonly missionMarker: Mesh;
+  private readonly pizzaProps: Mesh[] = [];
   private readonly resizeHandler: () => void;
+  private readonly progress: GameProgress;
   private selectedTool: ToolDefinition;
   private health = 100;
   private verticalVelocity = 0;
   private grounded = true;
   private activeVehicle: VehicleInstance | null = null;
   private autoWalk = false;
+  private autoWalkBlockedTime = 0;
+  private wasMissionComplete = false;
   private interactionMessage = "";
   private interactionMessageUntil = 0;
 
@@ -78,8 +83,10 @@ export class GameApp {
     this.audio = new AudioSystem();
     this.audio.restoreMusicPreference();
     this.interactions = new InteractionSystem();
+    this.progress = loadProgress(theme.id);
     this.vehicles = theme.spawnScene.vehicles.map((vehicle) => ({ definition: vehicle, mesh: this.createVehicle(vehicle) }));
     this.missionMarker = this.createMissionMarker();
+    this.createScenarioProps();
 
     this.input = new InputController(canvas);
     uiRoot.append(this.input.root);
@@ -97,7 +104,9 @@ export class GameApp {
       startPractice: () => this.startFirstMission(true),
       startActual: () => this.startFirstMission(false),
       changeWorld: () => this.onChangeWorld?.(),
-      resetWorld: () => this.world.reset()
+      resetWorld: () => this.world.reset(),
+      qaTeleport: () => this.qaTeleport(),
+      qaStep: () => this.qaStep()
     });
     uiRoot.append(this.hud.root);
 
@@ -105,6 +114,7 @@ export class GameApp {
     window.addEventListener("resize", this.resizeHandler);
     window.addEventListener("pointerdown", () => this.audio.unlock(), { once: true });
     window.addEventListener("keydown", () => this.audio.unlock(), { once: true });
+    this.installDebugHooks();
   }
 
   start(): void {
@@ -123,10 +133,12 @@ export class GameApp {
     this.entities.dispose();
     this.labels.dispose();
     this.decor.dispose();
+    this.pizzaProps.forEach((prop) => prop.dispose());
     this.world.dispose();
     this.audio.dispose();
     this.scene.dispose();
     this.engine.dispose();
+    (window as typeof window & { __lennyGameDebug?: unknown }).__lennyGameDebug = undefined;
   }
 
   private update(dt: number): void {
@@ -155,6 +167,7 @@ export class GameApp {
       playerPosition,
       new Vector3(this.theme.spawnScene.jailDrop.x, this.theme.spawnScene.jailDrop.y, this.theme.spawnScene.jailDrop.z)
     );
+    this.checkMissionCompletion();
     this.updateMissionMarker(dt);
     this.checkHazards(dt);
     this.updateHud();
@@ -174,12 +187,24 @@ export class GameApp {
       movement.normalize();
     }
     const speed = 9.4;
+    const attemptedMovement = movement.length() > 0.01;
     this.camera.position.addInPlace(movement.scale(speed * dt));
     this.camera.position.x = Math.max(-118, Math.min(118, this.camera.position.x));
     this.camera.position.z = Math.max(-118, Math.min(118, this.camera.position.z));
     if (this.world.collidesWithPlayer(this.camera.position)) {
       this.camera.position.x = previous.x;
       this.camera.position.z = previous.z;
+      if (this.autoWalk && attemptedMovement) {
+        this.autoWalkBlockedTime += dt;
+        if (this.autoWalkBlockedTime > 1) {
+          this.autoWalk = false;
+          this.autoWalkBlockedTime = 0;
+          this.say("Blocked. Turn or back up.");
+          this.audio.play("blocked");
+        }
+      }
+    } else {
+      this.autoWalkBlockedTime = 0;
     }
 
     this.verticalVelocity -= 18 * dt;
@@ -307,6 +332,7 @@ export class GameApp {
 
   private startMission(id: string): void {
     const definition = this.missions.start(id);
+    this.wasMissionComplete = false;
     const location = this.theme.missionLocations.find((candidate) => candidate.id === definition.locationId);
     if (!location) {
       return;
@@ -348,6 +374,7 @@ export class GameApp {
 
   private toggleAutoWalk(): void {
     this.autoWalk = !this.autoWalk;
+    this.autoWalkBlockedTime = 0;
     this.say(this.autoWalk ? "Auto walk on. Use Turn L or Turn R." : "Auto walk off.");
     this.audio.play("click");
   }
@@ -362,8 +389,26 @@ export class GameApp {
     this.audio.play("click");
   }
 
+  private qaTeleport(): void {
+    const jail = new Vector3(this.theme.spawnScene.jailDrop.x, this.theme.spawnScene.jailDrop.y, this.theme.spawnScene.jailDrop.z);
+    const target = this.missions.getObjectiveTarget(jail);
+    if (!target) {
+      this.say("QA: no active target.");
+      return;
+    }
+    this.camera.position.set(target.position.x + 2, 3, target.position.z + 2);
+    this.autoWalk = false;
+    this.say(`QA: moved to ${target.label}.`);
+  }
+
+  private qaStep(): void {
+    this.missions.debugAdvance();
+    this.say("QA: objective advanced.");
+    this.audio.play("click");
+  }
+
   private checkHazards(dt: number): void {
-    if (!this.missions.isActiveActual()) {
+    if (!this.missions.isActiveActual() || this.theme.id === "pizza") {
       return;
     }
     const criminal = this.entities.nearestCriminal(this.camera.position, 4.5);
@@ -396,6 +441,7 @@ export class GameApp {
 
   private updateHud(): void {
     const mission = this.missions.getHudText();
+    const objective = this.getObjectiveHud();
     this.hud.update({
       health: this.health,
       selectedToolId: this.selectedTool.id,
@@ -409,8 +455,64 @@ export class GameApp {
       muted: this.audio.muted,
       musicEnabled: this.audio.musicEnabled,
       missionActive: this.missions.isMissionActive(),
-      autoWalk: this.autoWalk
+      autoWalk: this.autoWalk,
+      objectiveLabel: objective.label,
+      objectiveDistance: objective.distance,
+      objectiveBearing: objective.bearing,
+      stars: this.progress.stars,
+      badges: this.progress.badges,
+      unlockedDecorations: this.progress.unlockedDecorations
     });
+  }
+
+  private getObjectiveHud(): { label: string; distance: number | null; bearing: number | null } {
+    const jail = new Vector3(this.theme.spawnScene.jailDrop.x, this.theme.spawnScene.jailDrop.y, this.theme.spawnScene.jailDrop.z);
+    const target = this.missions.getObjectiveTarget(jail);
+    if (!target) {
+      return { label: "", distance: null, bearing: null };
+    }
+    const delta = target.position.subtract(this.camera.position);
+    delta.y = 0;
+    const distance = delta.length();
+    const targetYaw = Math.atan2(delta.x, delta.z);
+    let bearing = targetYaw - this.camera.rotation.y;
+    while (bearing > Math.PI) bearing -= Math.PI * 2;
+    while (bearing < -Math.PI) bearing += Math.PI * 2;
+    return { label: target.label, distance, bearing };
+  }
+
+  private checkMissionCompletion(): void {
+    const complete = this.missions.isComplete();
+    if (!complete || this.wasMissionComplete) {
+      return;
+    }
+    this.wasMissionComplete = true;
+    this.progress.completedJobs += 1;
+    this.progress.stars += this.theme.id === "pizza" ? 3 : 2;
+    this.health = 100;
+    if (this.theme.id === "pizza") {
+      this.addReward("badge", "Pizza Helper");
+      if (this.progress.completedJobs >= 2) {
+        this.addReward("badge", "Delivery Star");
+        this.addReward("unlock", "Delivery Cone");
+      }
+      if (this.progress.completedJobs >= 3) {
+        this.addReward("unlock", "Pizza Sign Block");
+      }
+      this.say(`Delivery complete! +3 stars. Total ${this.progress.stars}.`);
+    } else {
+      this.addReward("badge", `${this.theme.displayName} Helper`);
+      this.say(`Mission complete! +2 stars. Total ${this.progress.stars}.`);
+    }
+    saveProgress(this.progress);
+    this.audio.play("success");
+  }
+
+  private addReward(kind: "badge" | "unlock", name: string): void {
+    const list = kind === "badge" ? this.progress.badges : this.progress.unlockedDecorations;
+    if (!list.includes(name)) {
+      list.push(name);
+    }
   }
 
   private getInteractionText(): string {
@@ -427,16 +529,17 @@ export class GameApp {
   }
 
   private updateMissionMarker(dt: number): void {
-    const location = this.missions.getActiveLocation();
-    if (!location) {
+    const jail = new Vector3(this.theme.spawnScene.jailDrop.x, this.theme.spawnScene.jailDrop.y, this.theme.spawnScene.jailDrop.z);
+    const target = this.missions.getObjectiveTarget(jail);
+    if (!target) {
       this.missionMarker.setEnabled(false);
       return;
     }
     this.missionMarker.setEnabled(true);
     this.missionMarker.position.set(
-      location.callPoint.x,
+      target.position.x,
       3.2 + Math.sin(performance.now() / 240) * 0.45,
-      location.callPoint.z
+      target.position.z
     );
     this.missionMarker.rotation.y += dt * 1.5;
   }
@@ -445,6 +548,67 @@ export class GameApp {
     const light = new HemisphericLight("sunny-sky", new Vector3(0.4, 1, 0.2), this.scene);
     light.intensity = 0.92;
     light.groundColor = Color3.FromHexString("#6fc66b");
+  }
+
+  private createScenarioProps(): void {
+    if (this.theme.id !== "pizza") {
+      return;
+    }
+    const ticketMaterial = this.createSimpleMaterial("pizza-ticket", "#fef3c7", "#facc15");
+    const ovenMaterial = this.createSimpleMaterial("pizza-oven-glow", "#f97316", "#fb923c");
+    const boxMaterial = this.createSimpleMaterial("pizza-box-prop", "#f8fafc", "#ef4444");
+    const doorstepMaterial = this.createSimpleMaterial("pizza-doorstep", "#38bdf8", "#0ea5e9");
+
+    const ticket = MeshBuilder.CreateBox("pizza-order-ticket", { width: 1.4, height: 0.1, depth: 1 }, this.scene);
+    ticket.position.set(-16, 3.2, -1.4);
+    ticket.material = ticketMaterial;
+
+    const ovenGlow = MeshBuilder.CreateBox("pizza-oven-glow", { width: 1.3, height: 1, depth: 0.12 }, this.scene);
+    ovenGlow.position.set(-20.2, 4.1, 4);
+    ovenGlow.material = ovenMaterial;
+
+    const pizzaBox = MeshBuilder.CreateBox("pizza-box-pickup", { width: 1.5, height: 0.25, depth: 1.5 }, this.scene);
+    pizzaBox.position.set(-6, 2.4, 6);
+    pizzaBox.material = boxMaterial;
+
+    const doorstep = MeshBuilder.CreateBox("pizza-delivery-doorstep", { width: 3.4, height: 0.12, depth: 2 }, this.scene);
+    doorstep.position.set(-72, 2.08, 52);
+    doorstep.material = doorstepMaterial;
+
+    this.pizzaProps.push(ticket, ovenGlow, pizzaBox, doorstep);
+  }
+
+  private createSimpleMaterial(name: string, color: string, glow?: string): StandardMaterial {
+    const material = new StandardMaterial(`${name}-material`, this.scene);
+    material.diffuseColor = Color3.FromHexString(color);
+    material.emissiveColor = Color3.FromHexString(glow ?? color).scale(0.22);
+    material.specularColor = Color3.Black();
+    return material;
+  }
+
+  private installDebugHooks(): void {
+    (window as typeof window & { __lennyGameDebug?: unknown }).__lennyGameDebug = {
+      getPosition: () => ({
+        x: Number(this.camera.position.x.toFixed(2)),
+        y: Number(this.camera.position.y.toFixed(2)),
+        z: Number(this.camera.position.z.toFixed(2)),
+        yaw: Number(this.camera.rotation.y.toFixed(2))
+      }),
+      getObjective: () => this.getObjectiveHud(),
+      teleportToMarker: () => {
+        const jail = new Vector3(this.theme.spawnScene.jailDrop.x, this.theme.spawnScene.jailDrop.y, this.theme.spawnScene.jailDrop.z);
+        const target = this.missions.getObjectiveTarget(jail);
+        if (!target) {
+          return false;
+        }
+        this.camera.position.set(target.position.x + 2, 3, target.position.z + 2);
+        this.autoWalk = false;
+        return true;
+      },
+      stop: () => {
+        this.autoWalk = false;
+      }
+    };
   }
 
   private createVehicle(definition: VehicleDefinition): Mesh {

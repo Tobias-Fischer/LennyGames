@@ -1,5 +1,5 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
-import type { EntityState, MissionDefinition, MissionLocation, ThemePack } from "./types";
+import type { EntityState, MissionDefinition, MissionLocation, ObjectiveKind, ThemePack } from "./types";
 
 export type MissionSignal =
   | "arrived-shop"
@@ -109,6 +109,42 @@ export class MissionSystem {
       return null;
     }
     return this.active.definition.objectives[this.active.objectiveIndex]?.text ?? null;
+  }
+
+  getCurrentObjectiveKind(): ObjectiveKind | null {
+    if (!this.active || this.active.complete) {
+      return null;
+    }
+    return this.active.definition.objectives[this.active.objectiveIndex]?.kind ?? null;
+  }
+
+  getObjectiveTarget(jailPosition: Vector3): { label: string; position: Vector3 } | null {
+    if (!this.active || this.active.complete) {
+      return null;
+    }
+    const kind = this.getCurrentObjectiveKind();
+    if (kind === "transport" || kind === "jail") {
+      return { label: "Finish Zone", position: jailPosition.clone() };
+    }
+    const point = kind === "disarm" || kind === "cuff" ? this.active.location.criminalSpawn : this.active.location.callPoint;
+    return {
+      label: this.active.location.label,
+      position: new Vector3(point.x, point.y, point.z)
+    };
+  }
+
+  isComplete(): boolean {
+    return Boolean(this.active?.complete);
+  }
+
+  debugAdvance(): void {
+    if (!this.active || this.active.complete) {
+      return;
+    }
+    this.active.objectiveIndex += 1;
+    if (this.active.objectiveIndex >= this.active.definition.objectives.length) {
+      this.active.complete = true;
+    }
   }
 
   isActiveActual(): boolean {

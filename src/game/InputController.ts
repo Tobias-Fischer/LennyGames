@@ -202,7 +202,14 @@ export class InputController {
     };
     const onClick = () => {
       if (window.matchMedia("(pointer: fine)").matches) {
-        void this.canvas.requestPointerLock?.();
+        try {
+          const lockRequest = this.canvas.requestPointerLock?.();
+          void Promise.resolve(lockRequest).catch(() => {
+            // Embedded preview browsers can reject pointer lock; drag-look still works.
+          });
+        } catch {
+          // Drag-look remains available if pointer lock is blocked.
+        }
       }
     };
 

@@ -14,6 +14,10 @@ const gameCanvas = canvas;
 const gameUiRoot = uiRoot;
 let app: GameApp | null = null;
 
+function updateQaMode(): void {
+  document.body.classList.toggle("qa-mode", window.location.hash.includes("qa"));
+}
+
 const scenarioCopy: Record<string, string> = {
   police: "A denser police city with station, jail, shops, car, alarms, cuffs, taser, and blaster.",
   army: "A barracks campus with soldiers, training range, hangar, tank, truck, plane, and toy action tools.",
@@ -73,5 +77,7 @@ function showScenarioPicker(): void {
 }
 
 showScenarioPicker();
+updateQaMode();
 
 window.addEventListener("beforeunload", () => app?.dispose());
+window.addEventListener("hashchange", updateQaMode);

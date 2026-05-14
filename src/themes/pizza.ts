@@ -128,11 +128,11 @@ export const pizzaTheme: ThemePack = {
       isPractice: true,
       locationId: "counter-order",
       objectives: [
-        { kind: "travel", text: "Practice: go to the pizza counter marker." },
-        { kind: "disarm", text: "Use Order or Oven to prepare the practice pizza." },
-        { kind: "cuff", text: "Use Deliver when close to the customer." },
-        { kind: "transport", text: "Bring the customer to the blue delivery pad." },
-        { kind: "jail", text: "Stand on the delivery pad to finish the order." }
+        { kind: "travel", text: "Practice: follow the arrow to the pizza counter." },
+        { kind: "disarm", text: "Use Order or Oven to take the order and make the pizza." },
+        { kind: "cuff", text: "Use Deliver when close to hand over the pizza box." },
+        { kind: "transport", text: "Guide the happy customer to the blue delivery pad." },
+        { kind: "jail", text: "Stand on the delivery pad to earn stars." }
       ]
     },
     {
@@ -142,11 +142,11 @@ export const pizzaTheme: ThemePack = {
       isPractice: false,
       locationId: "home-delivery",
       objectives: [
-        { kind: "travel", text: "Actual: ride or walk to the house marker." },
+        { kind: "travel", text: "Rush order: follow the arrow to the delivery house. Ride a bike if you can!" },
         { kind: "disarm", text: "Use Pizza or Order to help the hungry customer." },
-        { kind: "cuff", text: "Use Deliver when close." },
-        { kind: "transport", text: "Guide the customer back to the delivery pad." },
-        { kind: "jail", text: "Stand on the delivery pad to complete the rush order." }
+        { kind: "cuff", text: "Use Deliver when close to finish the doorstep handoff." },
+        { kind: "transport", text: "Return to the blue delivery pad for your reward." },
+        { kind: "jail", text: "Stand on the delivery pad to earn stars and badges." }
       ]
     }
   ],

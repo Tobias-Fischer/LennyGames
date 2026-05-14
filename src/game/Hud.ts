@@ -14,6 +14,8 @@ export interface HudActions {
   startActual(): void;
   changeWorld(): void;
   resetWorld(): void;
+  qaTeleport(): void;
+  qaStep(): void;
 }
 
 export class Hud {
@@ -25,6 +27,11 @@ export class Hud {
   private readonly alarm: HTMLDivElement;
   private readonly interaction: HTMLDivElement;
   private readonly selectedTool: HTMLDivElement;
+  private readonly objectiveCompass: HTMLDivElement;
+  private readonly objectiveArrow: HTMLDivElement;
+  private readonly objectiveText: HTMLDivElement;
+  private readonly badgesPanel: HTMLDivElement;
+  private readonly badgesButton: HTMLButtonElement;
   private readonly mute: HTMLButtonElement;
   private readonly music: HTMLButtonElement;
   private readonly drive: HTMLButtonElement;
@@ -62,6 +69,13 @@ export class Hud {
     this.interaction.className = "interaction-prompt";
     this.selectedTool = document.createElement("div");
     this.selectedTool.className = "selected-tool";
+    this.objectiveCompass = document.createElement("div");
+    this.objectiveCompass.className = "objective-compass";
+    this.objectiveArrow = document.createElement("div");
+    this.objectiveArrow.className = "objective-arrow";
+    this.objectiveText = document.createElement("div");
+    this.objectiveText.className = "objective-text";
+    this.objectiveCompass.append(this.objectiveArrow, this.objectiveText);
 
     const hotbar = document.createElement("div");
     hotbar.className = "hotbar";
@@ -86,7 +100,12 @@ export class Hud {
     this.drive = this.makeActionButton("Ride", actions.enterVehicle);
     this.mute = this.makeActionButton("Sound", actions.toggleMute);
     this.music = this.makeActionButton("Music", actions.toggleMusic);
-    rightActions.append(use, jump, this.drive, this.mute, this.music);
+    this.badgesButton = this.makeActionButton("Badges", () => {
+      this.badgesPanel.classList.toggle("open");
+    });
+    rightActions.append(use, jump, this.drive, this.mute, this.music, this.badgesButton);
+    this.badgesPanel = document.createElement("div");
+    this.badgesPanel.className = "badges-panel";
 
     const smallControls = document.createElement("div");
     smallControls.className = "small-controls";
@@ -96,6 +115,10 @@ export class Hud {
       this.makeSmallButton("World", actions.changeWorld),
       this.makeSmallButton("Reset", actions.resetWorld)
     );
+
+    const qaControls = document.createElement("div");
+    qaControls.className = "qa-controls";
+    qaControls.append(this.makeSmallButton("QA Go", actions.qaTeleport), this.makeSmallButton("QA Step", actions.qaStep));
 
     const movementControls = document.createElement("div");
     movementControls.className = "movement-controls";
@@ -113,10 +136,13 @@ export class Hud {
       crosshair,
       this.interaction,
       this.selectedTool,
+      this.objectiveCompass,
+      this.badgesPanel,
       hotbar,
       rightActions,
       smallControls,
       movementControls,
+      qaControls,
       desktopHint
     );
   }
@@ -133,6 +159,14 @@ export class Hud {
     this.music.textContent = state.musicEnabled ? "Music On" : "Music";
     this.walk.textContent = state.autoWalk ? "Stop" : "Walk";
     this.walk.classList.toggle("selected", state.autoWalk);
+    this.objectiveCompass.classList.toggle("visible", state.objectiveDistance !== null && state.objectiveBearing !== null);
+    this.objectiveArrow.style.transform = `rotate(${state.objectiveBearing ?? 0}rad)`;
+    this.objectiveText.textContent =
+      state.objectiveDistance === null ? "" : `${state.objectiveLabel}: ${Math.round(state.objectiveDistance)}m`;
+    this.badgesButton.textContent = `Stars ${state.stars}`;
+    const badges = state.badges.length > 0 ? state.badges.join(", ") : "No badges yet";
+    const unlocks = state.unlockedDecorations.length > 0 ? state.unlockedDecorations.join(", ") : "No unlocks yet";
+    this.badgesPanel.textContent = `Stars: ${state.stars} | Badges: ${badges} | Unlocks: ${unlocks}`;
     this.toolButtons.forEach((button, toolId) => {
       button.classList.toggle("selected", toolId === state.selectedToolId);
     });
