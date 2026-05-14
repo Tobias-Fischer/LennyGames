@@ -170,8 +170,8 @@ export class GameApp {
     }
     const speed = 9.4;
     this.camera.position.addInPlace(movement.scale(speed * dt));
-    this.camera.position.x = Math.max(-82, Math.min(82, this.camera.position.x));
-    this.camera.position.z = Math.max(-82, Math.min(82, this.camera.position.z));
+    this.camera.position.x = Math.max(-118, Math.min(118, this.camera.position.x));
+    this.camera.position.z = Math.max(-118, Math.min(118, this.camera.position.z));
     if (this.world.collidesWithPlayer(this.camera.position)) {
       this.camera.position.x = previous.x;
       this.camera.position.z = previous.z;
@@ -196,8 +196,8 @@ export class GameApp {
     const forward = new Vector3(Math.sin(mesh.rotation.y), 0, Math.cos(mesh.rotation.y));
     const speed = definition.speed ?? (definition.kind === "bike" ? 14 : definition.kind === "plane" ? 18 : 12);
     mesh.position.addInPlace(forward.scale(this.input.moveZ * dt * speed));
-    mesh.position.x = Math.max(-78, Math.min(78, mesh.position.x));
-    mesh.position.z = Math.max(-78, Math.min(78, mesh.position.z));
+    mesh.position.x = Math.max(-114, Math.min(114, mesh.position.x));
+    mesh.position.z = Math.max(-114, Math.min(114, mesh.position.z));
     const rideHeight = definition.kind === "plane" ? 4.7 : definition.kind === "bike" ? 2.8 : 3.7;
     this.camera.position.copyFrom(mesh.position.add(new Vector3(0, rideHeight, -0.4)));
     this.camera.rotation.y = mesh.rotation.y;

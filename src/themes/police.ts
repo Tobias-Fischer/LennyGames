@@ -233,7 +233,7 @@ export const policeTheme: ThemePack = {
   ],
   labels: [
     { id: "station", text: "Police Station", x: -18, y: 8.6, z: -14.2, yaw: 0, color: "#1d4ed8" },
-    { id: "station-side", text: "Station", x: -16, y: 4.5, z: -24, yaw: 0, color: "#1d4ed8" },
+    { id: "station-side", text: "Station", x: -16, y: 4.5, z: -28, yaw: 0, color: "#1d4ed8", size: 0.8 },
     { id: "jail", text: "Jail", x: -32, y: 7.4, z: 9.6, yaw: 0, color: "#334155", backgroundColor: "#facc15" },
     { id: "corner-shop", text: "Shop", x: 18.5, y: 7.6, z: -40.4, yaw: 0, color: "#c2410c", backgroundColor: "#fde047" },
     { id: "donut-shop", text: "Donut Shop", x: 38, y: 7.4, z: 21.4, yaw: Math.PI, color: "#a21caf", backgroundColor: "#fae8ff" },

@@ -174,7 +174,7 @@ export const armyTheme: ThemePack = {
     markerColor: "#facc15"
   },
   spawnScene: {
-    playerSpawn: { x: 0, y: 3, z: -44, yaw: 0.2 },
+    playerSpawn: { x: -2, y: 3, z: -58, yaw: 0.18 },
     jailDrop: { x: -75, y: 2.9, z: 46 },
     vehicles: [
       { id: "tank", label: "Tank", kind: "tank", x: 78, y: 0.85, z: 44, yaw: -0.6, color: "#4d6b3b", accentColor: "#26381f", speed: 8 },

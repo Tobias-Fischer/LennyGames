@@ -44,7 +44,7 @@ export class DecorChunkSystem {
           existing.root.setEnabled(true);
           existing.lastSeen = this.tick;
         } else {
-          this.chunks.set(key, { key, root: this.createChunk(x, z), lastSeen: this.tick });
+          this.chunks.set(key, { key, root: this.createChunk(x, z, playerPosition), lastSeen: this.tick });
         }
       }
     }
@@ -65,7 +65,7 @@ export class DecorChunkSystem {
     this.materials.forEach((material) => material.dispose());
   }
 
-  private createChunk(cx: number, cz: number): TransformNode {
+  private createChunk(cx: number, cz: number, playerPosition: Vector3): TransformNode {
     const root = new TransformNode(`decor-chunk-${cx}-${cz}`, this.scene);
     const profile = this.theme.decor;
     const seed = this.hash(cx, cz);
@@ -76,6 +76,9 @@ export class DecorChunkSystem {
       const x = originX + this.random(seed, i * 3) * chunkSize - chunkSize / 2;
       const z = originZ + this.random(seed, i * 3 + 1) * chunkSize - chunkSize / 2;
       if (Math.abs(x) < 24 && Math.abs(z) < 24) {
+        continue;
+      }
+      if (Vector3.DistanceSquared(new Vector3(x, playerPosition.y, z), playerPosition) < 34 * 34) {
         continue;
       }
       const roll = this.random(seed, i * 3 + 2);

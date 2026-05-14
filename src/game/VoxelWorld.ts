@@ -138,7 +138,7 @@ export class VoxelWorld {
     const x = picked.x + Math.round(picked.normal.x);
     const y = picked.y + Math.round(picked.normal.y);
     const z = picked.z + Math.round(picked.normal.z);
-    if (y < 0 || y > 10 || Math.abs(x) > 66 || Math.abs(z) > 66) {
+    if (y < 0 || y > 10 || Math.abs(x) > 104 || Math.abs(z) > 104) {
       return false;
     }
     const key = VoxelWorld.key(x, y, z);
@@ -180,22 +180,22 @@ export class VoxelWorld {
   }
 
   private buildBaseGround(): void {
-    const ground = MeshBuilder.CreateGround("town-ground", { width: 170, height: 170 }, this.scene);
+    const ground = MeshBuilder.CreateGround("town-ground", { width: 250, height: 250 }, this.scene);
     const material = new StandardMaterial("ground-material", this.scene);
     material.diffuseColor = Color3.FromHexString(this.theme.palette.grass ?? "#6fc66b");
     ground.material = material;
 
-    const road = MeshBuilder.CreateBox("main-road", { width: 13, height: 0.05, depth: 160 }, this.scene);
+    const road = MeshBuilder.CreateBox("main-road", { width: 13, height: 0.05, depth: 240 }, this.scene);
     road.position.set(0, 0.08, 0);
     const roadMaterial = new StandardMaterial("road-material", this.scene);
     roadMaterial.diffuseColor = Color3.FromHexString("#3f4652");
     road.material = roadMaterial;
 
-    const crossing = MeshBuilder.CreateBox("cross-road", { width: 160, height: 0.05, depth: 9 }, this.scene);
+    const crossing = MeshBuilder.CreateBox("cross-road", { width: 240, height: 0.05, depth: 9 }, this.scene);
     crossing.position.set(0, 0.09, -24);
     crossing.material = roadMaterial;
 
-    const northRoad = MeshBuilder.CreateBox("north-cross-road", { width: 130, height: 0.05, depth: 9 }, this.scene);
+    const northRoad = MeshBuilder.CreateBox("north-cross-road", { width: 210, height: 0.05, depth: 9 }, this.scene);
     northRoad.position.set(8, 0.1, 24);
     northRoad.material = roadMaterial;
   }

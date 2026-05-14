@@ -168,7 +168,7 @@ export const pizzaTheme: ThemePack = {
   ],
   labels: [
     { id: "pizza-shop", text: "Pizza Shop", x: -8, y: 8.5, z: -18.4, yaw: 0, color: "#dc2626", backgroundColor: "#fef3c7" },
-    { id: "pizza-side", text: "Pizza Shop", x: 13, y: 4.4, z: -22, yaw: 0, color: "#dc2626", backgroundColor: "#fef3c7" },
+    { id: "pizza-side", text: "Pizza Shop", x: 24, y: 4.4, z: -26, yaw: 0, color: "#dc2626", backgroundColor: "#fef3c7", size: 0.68 },
     { id: "counter", text: "Pizza Counter", x: -19, y: 4.8, z: 2, yaw: Math.PI / 2, color: "#92400e", backgroundColor: "#ffedd5" },
     { id: "ovens", text: "Ovens", x: -21.2, y: 5.8, z: 4, yaw: Math.PI / 2, color: "#f8fafc", backgroundColor: "#374151" },
     { id: "bikes", text: "Delivery Bikes", x: 44, y: 4.2, z: -24, yaw: -0.2, color: "#2563eb", backgroundColor: "#fee2e2" },
