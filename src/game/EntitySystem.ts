@@ -26,12 +26,14 @@ export class EntitySystem {
   private readonly definitions = new Map<string, EntityDefinition>();
   private readonly records = new Map<string, EntityRecord>();
   private readonly materials = new Map<string, StandardMaterial>();
+  private readonly missionTargetEntityId: string;
 
   constructor(
     private readonly scene: Scene,
     theme: ThemePack
   ) {
     theme.entities.forEach((entity) => this.definitions.set(entity.id, entity));
+    this.missionTargetEntityId = theme.entities.find((entity) => entity.role === "criminal")?.id ?? "criminal";
     theme.spawnScene.entities.forEach((entity) => this.spawn(entity));
   }
 
@@ -39,7 +41,7 @@ export class EntitySystem {
     this.remove(id);
     return this.spawn({
       id,
-      entityId: "criminal",
+      entityId: this.missionTargetEntityId,
       x: position.x,
       y: position.y,
       z: position.z,

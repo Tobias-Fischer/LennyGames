@@ -2,6 +2,7 @@ import { Ray } from "@babylonjs/core/Culling/ray.js";
 import { Color3 } from "@babylonjs/core/Maths/math.color.js";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
+import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture.js";
 import { Mesh } from "@babylonjs/core/Meshes/mesh.js";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder.js";
 import type { Scene } from "@babylonjs/core/scene.js";
@@ -106,7 +107,7 @@ export class VoxelWorld {
     const x = picked.x + Math.round(picked.normal.x);
     const y = picked.y + Math.round(picked.normal.y);
     const z = picked.z + Math.round(picked.normal.z);
-    if (y < 0 || y > 10 || Math.abs(x) > 46 || Math.abs(z) > 46) {
+    if (y < 0 || y > 10 || Math.abs(x) > 66 || Math.abs(z) > 66) {
       return false;
     }
     const key = VoxelWorld.key(x, y, z);
@@ -148,22 +149,22 @@ export class VoxelWorld {
   }
 
   private buildBaseGround(): void {
-    const ground = MeshBuilder.CreateGround("town-ground", { width: 130, height: 130 }, this.scene);
+    const ground = MeshBuilder.CreateGround("town-ground", { width: 170, height: 170 }, this.scene);
     const material = new StandardMaterial("ground-material", this.scene);
-    material.diffuseColor = Color3.FromHexString("#6fc66b");
+    material.diffuseColor = Color3.FromHexString(this.theme.palette.grass ?? "#6fc66b");
     ground.material = material;
 
-    const road = MeshBuilder.CreateBox("main-road", { width: 12, height: 0.05, depth: 125 }, this.scene);
+    const road = MeshBuilder.CreateBox("main-road", { width: 13, height: 0.05, depth: 160 }, this.scene);
     road.position.set(0, 0.08, 0);
     const roadMaterial = new StandardMaterial("road-material", this.scene);
     roadMaterial.diffuseColor = Color3.FromHexString("#3f4652");
     road.material = roadMaterial;
 
-    const crossing = MeshBuilder.CreateBox("cross-road", { width: 125, height: 0.05, depth: 8 }, this.scene);
+    const crossing = MeshBuilder.CreateBox("cross-road", { width: 160, height: 0.05, depth: 9 }, this.scene);
     crossing.position.set(0, 0.09, -24);
     crossing.material = roadMaterial;
 
-    const northRoad = MeshBuilder.CreateBox("north-cross-road", { width: 92, height: 0.05, depth: 8 }, this.scene);
+    const northRoad = MeshBuilder.CreateBox("north-cross-road", { width: 130, height: 0.05, depth: 9 }, this.scene);
     northRoad.position.set(8, 0.1, 24);
     northRoad.material = roadMaterial;
   }
@@ -213,7 +214,39 @@ export class VoxelWorld {
     }
     const definition = this.definitions.get(typeId);
     const material = new StandardMaterial(`block-material-${typeId}`, this.scene);
-    material.diffuseColor = Color3.FromHexString(definition?.color ?? "#ffffff");
+    const base = definition?.color ?? "#ffffff";
+    const texture = new DynamicTexture(`block-texture-${typeId}`, { width: 64, height: 64 }, this.scene, false);
+    const context = texture.getContext();
+    context.fillStyle = base;
+    context.fillRect(0, 0, 64, 64);
+    const color = Color3.FromHexString(base);
+    const shade = (amount: number) =>
+      `rgb(${Math.max(0, Math.min(255, Math.round(color.r * 255 * amount)))}, ${Math.max(
+        0,
+        Math.min(255, Math.round(color.g * 255 * amount))
+      )}, ${Math.max(0, Math.min(255, Math.round(color.b * 255 * amount)))})`;
+    for (let y = 0; y < 64; y += 16) {
+      for (let x = 0; x < 64; x += 16) {
+        const hash = (x * 13 + y * 7 + typeId.length * 19) % 5;
+        context.fillStyle = shade(0.82 + hash * 0.055);
+        context.fillRect(x + 1, y + 1, 14, 14);
+      }
+    }
+    context.strokeStyle = shade(0.72);
+    context.lineWidth = 1;
+    for (let line = 0; line <= 64; line += 16) {
+      context.beginPath();
+      context.moveTo(line, 0);
+      context.lineTo(line, 64);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(0, line);
+      context.lineTo(64, line);
+      context.stroke();
+    }
+    texture.update();
+    material.diffuseTexture = texture;
+    material.diffuseColor = Color3.White();
     material.specularColor = Color3.Black();
     this.materials.set(typeId, material);
     return material;

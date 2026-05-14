@@ -82,8 +82,8 @@ export class MissionSystem {
   getHudText(): { title: string; text: string; alarmActive: boolean; complete: boolean } {
     if (!this.active) {
       return {
-        title: "Police and Crimes",
-        text: "Build blocks, practice with tools, or tap Practice/Actual to answer an alarm.",
+        title: this.theme.displayName,
+        text: "Build blocks, explore, or tap Practice/Actual to start a mission.",
         alarmActive: false,
         complete: false
       };
@@ -91,7 +91,7 @@ export class MissionSystem {
     if (this.active.complete) {
       return {
         title: "Call complete",
-        text: "Great job. The station is ready for another practice or actual call.",
+        text: "Great job. This world is ready for another practice or actual mission.",
         alarmActive: false,
         complete: true
       };
@@ -105,7 +105,7 @@ export class MissionSystem {
   }
 
   isActiveActual(): boolean {
-    return this.active?.definition.id === "actual-call";
+    return this.active?.definition.isPractice === false;
   }
 
   isMissionActive(): boolean {

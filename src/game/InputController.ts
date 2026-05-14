@@ -43,11 +43,11 @@ export class InputController {
   }
 
   updateCameraLook(camera: FreeCamera, dt: number): void {
-    camera.rotation.y += this.lookX * dt * 1.9;
-    camera.rotation.x += this.lookY * dt * 1.5;
+    camera.rotation.y += this.lookX * dt * 2.8;
+    camera.rotation.x += this.lookY * dt * 2.25;
     camera.rotation.x = Math.max(-1.2, Math.min(1.05, camera.rotation.x));
-    this.lookX *= 0.72;
-    this.lookY *= 0.72;
+    this.lookX *= 0.8;
+    this.lookY *= 0.8;
   }
 
   consumeUse(): boolean {
@@ -150,7 +150,7 @@ export class InputController {
     if (!this.joystickPointer) {
       return;
     }
-    const max = 42;
+    const max = 54;
     const dx = clientX - this.joystickPointer.startX;
     const dy = clientY - this.joystickPointer.startY;
     const length = Math.hypot(dx, dy);
@@ -165,7 +165,7 @@ export class InputController {
 
   private bindLookDrag(): void {
     const onPointerDown = (event: PointerEvent) => {
-      if (event.target !== this.canvas || event.clientX < window.innerWidth * 0.42) {
+      if (event.target !== this.canvas || event.clientX < window.innerWidth * 0.28) {
         return;
       }
       event.preventDefault();
@@ -182,8 +182,8 @@ export class InputController {
       const dy = event.clientY - this.lastLookY;
       this.lastLookX = event.clientX;
       this.lastLookY = event.clientY;
-      this.lookX = dx * 0.025;
-      this.lookY = dy * 0.02;
+      this.lookX = dx * 0.042;
+      this.lookY = dy * 0.034;
     };
     const onPointerUp = (event: PointerEvent) => {
       if (this.lookPointerId === event.pointerId) {
@@ -197,8 +197,8 @@ export class InputController {
       if (document.pointerLockElement !== this.canvas) {
         return;
       }
-      this.lookX = event.movementX * 0.025;
-      this.lookY = event.movementY * 0.02;
+      this.lookX = event.movementX * 0.042;
+      this.lookY = event.movementY * 0.034;
     };
     const onClick = () => {
       if (window.matchMedia("(pointer: fine)").matches) {

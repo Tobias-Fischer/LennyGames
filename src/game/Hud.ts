@@ -8,6 +8,7 @@ export interface HudActions {
   toggleMute(): void;
   startPractice(): void;
   startActual(): void;
+  changeWorld(): void;
   resetWorld(): void;
 }
 
@@ -73,7 +74,7 @@ export class Hud {
     rightActions.className = "right-actions";
     const use = this.makeActionButton("Use", actions.useTool);
     const jump = this.makeActionButton("Jump", actions.jump);
-    this.drive = this.makeActionButton("Car", actions.enterVehicle);
+    this.drive = this.makeActionButton("Ride", actions.enterVehicle);
     this.mute = this.makeActionButton("Sound", actions.toggleMute);
     rightActions.append(use, jump, this.drive, this.mute);
 
@@ -82,12 +83,13 @@ export class Hud {
     smallControls.append(
       this.makeSmallButton("Practice", actions.startPractice),
       this.makeSmallButton("Actual", actions.startActual),
+      this.makeSmallButton("World", actions.changeWorld),
       this.makeSmallButton("Reset", actions.resetWorld)
     );
 
     const desktopHint = document.createElement("div");
     desktopHint.className = "desktop-hint";
-    desktopHint.textContent = "Desktop: WASD move, drag or click to look, E use, F car, Space jump.";
+    desktopHint.textContent = "Desktop: WASD move, drag or click to look, E use, F ride, Space jump.";
 
     this.root.append(topBar, crosshair, this.interaction, hotbar, rightActions, smallControls, desktopHint);
   }
@@ -98,7 +100,7 @@ export class Hud {
     this.missionTitle.textContent = state.missionTitle;
     this.missionText.textContent = state.missionText;
     this.interaction.textContent = state.interactionText;
-    this.drive.textContent = state.driving ? "Exit" : "Car";
+    this.drive.textContent = state.driving ? "Exit" : "Ride";
     this.mute.textContent = state.muted ? "Muted" : "Sound";
     this.toolButtons.forEach((button, toolId) => {
       button.classList.toggle("selected", toolId === state.selectedToolId);

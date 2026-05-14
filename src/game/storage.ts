@@ -6,12 +6,20 @@ export interface SavedWorld {
 
 const storagePrefix = "police-and-crimes";
 
+function worldKey(themeId: string, version: number): string {
+  return `${storagePrefix}:${themeId}:v${version}:world`;
+}
+
+function legacyWorldKey(themeId: string): string {
+  return `${storagePrefix}:${themeId}:world`;
+}
+
 export function createEmptyWorld(version: number): SavedWorld {
   return { version, addedBlocks: [], removedInitialBlockKeys: [] };
 }
 
 export function loadSavedWorld(themeId: string, version: number): SavedWorld {
-  const raw = window.localStorage.getItem(`${storagePrefix}:${themeId}:world`);
+  const raw = window.localStorage.getItem(worldKey(themeId, version)) ?? window.localStorage.getItem(legacyWorldKey(themeId));
   if (!raw) {
     return createEmptyWorld(version);
   }
@@ -35,9 +43,11 @@ export function loadSavedWorld(themeId: string, version: number): SavedWorld {
 }
 
 export function saveWorld(themeId: string, world: SavedWorld): void {
-  window.localStorage.setItem(`${storagePrefix}:${themeId}:world`, JSON.stringify(world));
+  window.localStorage.setItem(worldKey(themeId, world.version), JSON.stringify(world));
 }
 
 export function clearThemeSave(themeId: string): void {
-  window.localStorage.removeItem(`${storagePrefix}:${themeId}:world`);
+  Object.keys(window.localStorage)
+    .filter((key) => key === legacyWorldKey(themeId) || key.startsWith(`${storagePrefix}:${themeId}:v`))
+    .forEach((key) => window.localStorage.removeItem(key));
 }

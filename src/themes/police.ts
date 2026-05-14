@@ -89,10 +89,33 @@ world.floor(3, 9, 18, 24, "build-lot");
 world.floor(-5, 2, 12, 20, "build-lot");
 world.floor(20, 27, -7, -1, "build-lot");
 
+for (let offset = -62; offset <= 62; offset += 8) {
+  world.floor(-8, -7, offset, offset + 2, "sidewalk", true);
+  world.floor(7, 8, offset, offset + 2, "sidewalk", true);
+  world.floor(offset, offset + 2, -30, -29, "sidewalk", true);
+  world.floor(offset, offset + 2, 29, 30, "sidewalk", true);
+}
+
+[
+  { x1: 34, x2: 42, z1: -18, z2: -10, wall: "shop-wall", roof: "shop-roof", sign: "shop-sign" },
+  { x1: -48, x2: -40, z1: 26, z2: 34, wall: "station-wall", roof: "station-roof", sign: "police-blue" },
+  { x1: 42, x2: 51, z1: 18, z2: 27, wall: "donut-wall", roof: "donut-roof", sign: "donut-sign" },
+  { x1: -50, x2: -42, z1: -52, z2: -44, wall: "shop-wall", roof: "shop-roof", sign: "shop-sign" }
+].forEach((lot) => {
+  world.building({
+    ...lot,
+    height: 4,
+    floor: "shop-floor",
+    protected: true,
+    openings: [{ side: "south", start: lot.x1 + 2, end: lot.x1 + 4, maxY: 3 }]
+  });
+  world.stripe(lot.x1 + 2, lot.x2 - 2, lot.z1 - 1, 3, lot.sign);
+});
+
 export const policeTheme: ThemePack = {
   id: "police",
   displayName: "Police and Crimes",
-  worldVersion: 2,
+  worldVersion: 3,
   palette: {
     sky: "#87ceeb",
     policeBlue: "#2446c7",
@@ -218,7 +241,21 @@ export const policeTheme: ThemePack = {
   spawnScene: {
     playerSpawn: { x: -18, y: 3, z: -34, yaw: 0 },
     jailDrop: { x: -32, y: 2.9, z: 18 },
-    policeCar: { x: 6, y: 0.75, z: -34, yaw: 0 },
+    vehicles: [
+      {
+        id: "police-car",
+        label: "Police Car",
+        kind: "car",
+        x: 6,
+        y: 0.75,
+        z: -34,
+        yaw: 0,
+        color: "#2446c7",
+        accentColor: "#f8fafc",
+        speed: 13,
+        turnSpeed: 2.1
+      }
+    ],
     blocks: world.blocks,
     entities: [
       { id: "officer-1", entityId: "police-man", x: -24, y: 1, z: -8, yaw: 0.8 },

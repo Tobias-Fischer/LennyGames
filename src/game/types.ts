@@ -64,10 +64,24 @@ export interface SpawnEntity {
   yaw?: number;
 }
 
+export interface VehicleDefinition {
+  id: string;
+  label: string;
+  kind: "car" | "bike" | "tank" | "plane" | "truck";
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  color: string;
+  accentColor?: string;
+  speed?: number;
+  turnSpeed?: number;
+}
+
 export interface SpawnScene {
   playerSpawn: { x: number; y: number; z: number; yaw: number };
   jailDrop: { x: number; y: number; z: number };
-  policeCar: { x: number; y: number; z: number; yaw: number };
+  vehicles: VehicleDefinition[];
   blocks: SpawnBlock[];
   entities: SpawnEntity[];
 }

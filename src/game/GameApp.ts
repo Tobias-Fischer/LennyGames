@@ -13,10 +13,13 @@ import { Hud } from "./Hud";
 import { InputController } from "./InputController";
 import { InteractionSystem } from "./InteractionSystem";
 import { MissionSystem } from "./MissionSystem";
-import type { ThemePack, ToolDefinition } from "./types";
+import type { ThemePack, ToolDefinition, VehicleDefinition } from "./types";
 import { VoxelWorld } from "./VoxelWorld";
 
-type MissionId = "practice-call" | "actual-call" | "donut-call";
+interface VehicleInstance {
+  definition: VehicleDefinition;
+  mesh: Mesh;
+}
 
 export class GameApp {
   private readonly engine: Engine;
@@ -29,21 +32,22 @@ export class GameApp {
   private readonly missions: MissionSystem;
   private readonly audio: AudioSystem;
   private readonly interactions: InteractionSystem;
-  private readonly policeCar: Mesh;
+  private readonly vehicles: VehicleInstance[];
   private readonly missionMarker: Mesh;
   private readonly resizeHandler: () => void;
   private selectedTool: ToolDefinition;
   private health = 100;
   private verticalVelocity = 0;
   private grounded = true;
-  private driving = false;
+  private activeVehicle: VehicleInstance | null = null;
   private interactionMessage = "";
   private interactionMessageUntil = 0;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
     uiRoot: HTMLDivElement,
-    private readonly theme: ThemePack
+    private readonly theme: ThemePack,
+    private readonly onChangeWorld?: () => void
   ) {
     this.engine = new Engine(canvas, true, {
       preserveDrawingBuffer: false,
@@ -66,7 +70,7 @@ export class GameApp {
     this.missions = new MissionSystem(theme);
     this.audio = new AudioSystem();
     this.interactions = new InteractionSystem();
-    this.policeCar = this.createPoliceCar();
+    this.vehicles = theme.spawnScene.vehicles.map((vehicle) => ({ definition: vehicle, mesh: this.createVehicle(vehicle) }));
     this.missionMarker = this.createMissionMarker();
 
     this.input = new InputController(canvas);
@@ -78,8 +82,9 @@ export class GameApp {
       jump: () => this.jump(),
       enterVehicle: () => this.toggleVehicle(),
       toggleMute: () => this.audio.toggleMute(),
-      startPractice: () => this.startMission("practice-call"),
-      startActual: () => this.startMission("actual-call"),
+      startPractice: () => this.startFirstMission(true),
+      startActual: () => this.startFirstMission(false),
+      changeWorld: () => this.onChangeWorld?.(),
       resetWorld: () => this.world.reset()
     });
     uiRoot.append(this.hud.root);
@@ -122,7 +127,7 @@ export class GameApp {
       this.jump();
     }
 
-    if (this.driving) {
+    if (this.activeVehicle) {
       this.updateVehicle(dt);
     } else {
       this.updatePlayer(dt);
@@ -152,10 +157,10 @@ export class GameApp {
     if (movement.length() > 1) {
       movement.normalize();
     }
-    const speed = 7.4;
+    const speed = 9.4;
     this.camera.position.addInPlace(movement.scale(speed * dt));
-    this.camera.position.x = Math.max(-62, Math.min(62, this.camera.position.x));
-    this.camera.position.z = Math.max(-62, Math.min(62, this.camera.position.z));
+    this.camera.position.x = Math.max(-82, Math.min(82, this.camera.position.x));
+    this.camera.position.z = Math.max(-82, Math.min(82, this.camera.position.z));
     if (this.world.collidesWithPlayer(this.camera.position)) {
       this.camera.position.x = previous.x;
       this.camera.position.z = previous.z;
@@ -172,18 +177,24 @@ export class GameApp {
   }
 
   private updateVehicle(dt: number): void {
-    this.policeCar.rotation.y += this.input.moveX * dt * 1.8;
-    const forward = new Vector3(Math.sin(this.policeCar.rotation.y), 0, Math.cos(this.policeCar.rotation.y));
-    this.policeCar.position.addInPlace(forward.scale(this.input.moveZ * dt * 11));
-    this.policeCar.position.x = Math.max(-58, Math.min(58, this.policeCar.position.x));
-    this.policeCar.position.z = Math.max(-58, Math.min(58, this.policeCar.position.z));
-    this.camera.position.copyFrom(this.policeCar.position.add(new Vector3(0, 3.5, -0.4)));
-    this.camera.rotation.y = this.policeCar.rotation.y;
-    this.camera.rotation.x = 0.05;
+    if (!this.activeVehicle) {
+      return;
+    }
+    const { definition, mesh } = this.activeVehicle;
+    mesh.rotation.y += this.input.moveX * dt * (definition.turnSpeed ?? (definition.kind === "tank" ? 1.25 : 2.05));
+    const forward = new Vector3(Math.sin(mesh.rotation.y), 0, Math.cos(mesh.rotation.y));
+    const speed = definition.speed ?? (definition.kind === "bike" ? 14 : definition.kind === "plane" ? 18 : 12);
+    mesh.position.addInPlace(forward.scale(this.input.moveZ * dt * speed));
+    mesh.position.x = Math.max(-78, Math.min(78, mesh.position.x));
+    mesh.position.z = Math.max(-78, Math.min(78, mesh.position.z));
+    const rideHeight = definition.kind === "plane" ? 4.7 : definition.kind === "bike" ? 2.8 : 3.7;
+    this.camera.position.copyFrom(mesh.position.add(new Vector3(0, rideHeight, -0.4)));
+    this.camera.rotation.y = mesh.rotation.y;
+    this.camera.rotation.x = definition.kind === "plane" ? -0.02 : 0.05;
   }
 
   private jump(): void {
-    if (!this.grounded || this.driving) {
+    if (!this.grounded || this.activeVehicle) {
       return;
     }
     this.verticalVelocity = 7.2;
@@ -193,7 +204,7 @@ export class GameApp {
   private useSelectedTool(): void {
     this.audio.unlock();
     if (this.selectedTool.kind === "radio") {
-      this.startMission("actual-call");
+      this.startFirstMission(false);
       this.audio.play("siren");
       return;
     }
@@ -227,11 +238,11 @@ export class GameApp {
       const target = this.entities.nearestCriminalTarget(this.camera.position, 12);
       if (target && this.entities.stunNearest(this.camera.position)) {
         this.createBeam(target.position, "#38bdf8");
-        this.say("Taser hit. Use cuffs!");
+        this.say(`${this.selectedTool.label} hit. Use the finish tool!`);
         this.audio.play("taser");
         this.missions.markDisarmed();
       } else {
-        this.say("No criminal in taser range.");
+        this.say(`No target in ${this.selectedTool.label} range.`);
         this.audio.play("blocked");
       }
       return;
@@ -240,11 +251,11 @@ export class GameApp {
       const target = this.entities.nearestCriminalTarget(this.camera.position, 14);
       if (target && this.entities.disarmNearest(this.camera.position)) {
         this.createBeam(target.position, "#f97316");
-        this.say("Blaster pop. Criminal disarmed!");
+        this.say(`${this.selectedTool.label} worked. Target is ready!`);
         this.audio.play("blaster");
         this.missions.markDisarmed();
       } else {
-        this.say("No criminal in blaster range.");
+        this.say(`No target in ${this.selectedTool.label} range.`);
         this.audio.play("blocked");
       }
       return;
@@ -252,11 +263,11 @@ export class GameApp {
     if (this.selectedTool.kind === "handcuffs") {
       const cuffed = this.entities.cuffNearest(this.camera.position);
       if (cuffed) {
-        this.say("Criminal cuffed. Take them to jail.");
+        this.say(`${this.selectedTool.label} done. Take the target to the finish zone.`);
         this.audio.play("cuffs");
         this.missions.markCuffed(cuffed);
       } else {
-        this.say("Go closer after stunning or disarming.");
+        this.say("Go closer after using the action tool.");
         this.audio.play("blocked");
       }
     }
@@ -270,7 +281,14 @@ export class GameApp {
     }
   }
 
-  private startMission(id: MissionId): void {
+  private startFirstMission(isPractice: boolean): void {
+    const mission = this.theme.missions.find((candidate) => candidate.isPractice === isPractice) ?? this.theme.missions[0];
+    if (mission) {
+      this.startMission(mission.id);
+    }
+  }
+
+  private startMission(id: string): void {
     const definition = this.missions.start(id);
     const location = this.theme.missionLocations.find((candidate) => candidate.id === definition.locationId);
     if (!location) {
@@ -287,18 +305,26 @@ export class GameApp {
   }
 
   private toggleVehicle(): void {
-    if (this.driving) {
-      this.driving = false;
-      this.camera.position.copyFrom(this.policeCar.position.add(new Vector3(2.6, 2.9, 0)));
-      this.say("Exited police car.");
+    if (this.activeVehicle) {
+      const vehicle = this.activeVehicle;
+      this.activeVehicle = null;
+      this.camera.position.copyFrom(vehicle.mesh.position.add(new Vector3(2.6, 2.9, 0)));
+      this.say(`Exited ${vehicle.definition.label}.`);
       return;
     }
-    if (Vector3.Distance(this.camera.position, this.policeCar.position) < 7) {
-      this.driving = true;
-      this.say("Driving police car.");
+    const vehicle = this.vehicles
+      .map((candidate) => ({
+        candidate,
+        distance: Vector3.Distance(this.camera.position, candidate.mesh.position)
+      }))
+      .filter(({ distance }) => distance < 8)
+      .sort((a, b) => a.distance - b.distance)[0]?.candidate;
+    if (vehicle) {
+      this.activeVehicle = vehicle;
+      this.say(`Driving ${vehicle.definition.label}.`);
       this.audio.play("car");
     } else {
-      this.say("Walk closer to the police car.");
+      this.say("Walk closer to a vehicle.");
       this.audio.play("blocked");
     }
   }
@@ -311,21 +337,28 @@ export class GameApp {
     if (!criminal || criminal.cuffed || criminal.disarmed) {
       return;
     }
-    this.health = Math.max(0, this.health - Math.ceil(18 * dt));
+    this.health = Math.max(25, this.health - Math.ceil(12 * dt));
     this.audio.play("damage");
-    if (this.health <= 0) {
-      this.respawn();
+    if (performance.now() > this.interactionMessageUntil) {
+      const target = this.entities.nearestCriminalTarget(this.camera.position, 4.5);
+      const away = target ? this.camera.position.subtract(target.position) : Vector3.Zero();
+      away.y = 0;
+      if (away.length() > 0.1) {
+        away.normalize();
+        this.camera.position.addInPlace(away.scale(0.45));
+      }
+      this.say("Careful. This is a kid-safe warning, not a defeat.");
     }
   }
 
   private respawn(): void {
     const spawn = this.theme.spawnScene.playerSpawn;
     this.health = 100;
-    this.driving = false;
+    this.activeVehicle = null;
     this.verticalVelocity = 0;
     this.camera.position.set(spawn.x, spawn.y, spawn.z);
     this.camera.rotation.set(0, spawn.yaw, 0);
-    this.say("Respawned at the police station with all gear.");
+    this.say(`Back at ${this.theme.displayName} with all gear.`);
   }
 
   private updateHud(): void {
@@ -337,7 +370,7 @@ export class GameApp {
       missionTitle: mission.title,
       missionText: mission.text,
       interactionText: this.getInteractionText(),
-      driving: this.driving,
+      driving: Boolean(this.activeVehicle),
       muted: this.audio.muted
     });
   }
@@ -347,7 +380,7 @@ export class GameApp {
       return this.interactionMessage;
     }
     const target = this.entities.nearestCriminalTarget(this.camera.position, 18);
-    return this.interactions.describe(this.selectedTool, target, this.driving);
+    return this.interactions.describe(this.selectedTool, target, Boolean(this.activeVehicle));
   }
 
   private say(message: string): void {
@@ -376,31 +409,70 @@ export class GameApp {
     light.groundColor = Color3.FromHexString("#6fc66b");
   }
 
-  private createPoliceCar(): Mesh {
-    const root = MeshBuilder.CreateBox("police-car", { width: 3.4, height: 1.1, depth: 5.1 }, this.scene);
-    root.position.set(
-      this.theme.spawnScene.policeCar.x,
-      this.theme.spawnScene.policeCar.y,
-      this.theme.spawnScene.policeCar.z
-    );
-    root.rotation.y = this.theme.spawnScene.policeCar.yaw;
-    const bodyMaterial = new StandardMaterial("police-car-blue", this.scene);
-    bodyMaterial.diffuseColor = Color3.FromHexString("#2446c7");
+  private createVehicle(definition: VehicleDefinition): Mesh {
+    const dimensions =
+      definition.kind === "bike"
+        ? { width: 1.1, height: 0.7, depth: 3.2 }
+        : definition.kind === "plane"
+          ? { width: 3.4, height: 0.9, depth: 6.4 }
+          : definition.kind === "tank"
+            ? { width: 4.2, height: 1.35, depth: 5.4 }
+            : { width: 3.4, height: 1.1, depth: 5.1 };
+    const root = MeshBuilder.CreateBox(`vehicle-${definition.id}`, dimensions, this.scene);
+    root.position.set(definition.x, definition.y, definition.z);
+    root.rotation.y = definition.yaw;
+    const bodyMaterial = new StandardMaterial(`vehicle-${definition.id}-body`, this.scene);
+    bodyMaterial.diffuseColor = Color3.FromHexString(definition.color);
     root.material = bodyMaterial;
 
-    const cabin = MeshBuilder.CreateBox("police-car-cabin", { width: 2.5, height: 1, depth: 2.4 }, this.scene);
+    const accentColor = definition.accentColor ?? "#f8fafc";
+    const accentMaterial = new StandardMaterial(`vehicle-${definition.id}-accent`, this.scene);
+    accentMaterial.diffuseColor = Color3.FromHexString(accentColor);
+
+    if (definition.kind === "bike") {
+      const bag = MeshBuilder.CreateBox(`vehicle-${definition.id}-bag`, { width: 1.2, height: 0.95, depth: 0.9 }, this.scene);
+      bag.parent = root;
+      bag.position.set(0, 0.8, -0.9);
+      bag.material = accentMaterial;
+      const handle = MeshBuilder.CreateBox(`vehicle-${definition.id}-handle`, { width: 1.6, height: 0.16, depth: 0.16 }, this.scene);
+      handle.parent = root;
+      handle.position.set(0, 0.85, 1.1);
+      handle.material = accentMaterial;
+      return root;
+    }
+
+    if (definition.kind === "plane") {
+      const wing = MeshBuilder.CreateBox(`vehicle-${definition.id}-wing`, { width: 7.2, height: 0.16, depth: 1.2 }, this.scene);
+      wing.parent = root;
+      wing.position.y = 0.1;
+      wing.material = accentMaterial;
+      const tail = MeshBuilder.CreateBox(`vehicle-${definition.id}-tail`, { width: 1.8, height: 1.2, depth: 0.22 }, this.scene);
+      tail.parent = root;
+      tail.position.set(0, 0.8, -2.8);
+      tail.material = accentMaterial;
+      return root;
+    }
+
+    const cabin = MeshBuilder.CreateBox(`vehicle-${definition.id}-cabin`, { width: 2.5, height: 1, depth: 2.2 }, this.scene);
     cabin.parent = root;
     cabin.position.y = 0.95;
-    const cabinMaterial = new StandardMaterial("police-car-white", this.scene);
-    cabinMaterial.diffuseColor = Color3.FromHexString("#f8fafc");
-    cabin.material = cabinMaterial;
+    cabin.material = accentMaterial;
 
-    const light = MeshBuilder.CreateBox("police-car-light", { width: 1.3, height: 0.22, depth: 0.36 }, this.scene);
-    light.parent = root;
-    light.position.y = 1.58;
-    const lightMaterial = new StandardMaterial("police-car-light-material", this.scene);
-    lightMaterial.diffuseColor = Color3.FromHexString("#ff3b3b");
-    light.material = lightMaterial;
+    if (definition.kind === "tank") {
+      const turret = MeshBuilder.CreateBox(`vehicle-${definition.id}-turret`, { width: 1.8, height: 0.7, depth: 1.8 }, this.scene);
+      turret.parent = root;
+      turret.position.y = 1.55;
+      turret.material = accentMaterial;
+      const barrel = MeshBuilder.CreateBox(`vehicle-${definition.id}-barrel`, { width: 0.35, height: 0.35, depth: 3.1 }, this.scene);
+      barrel.parent = root;
+      barrel.position.set(0, 1.6, 2.1);
+      barrel.material = accentMaterial;
+    } else {
+      const light = MeshBuilder.CreateBox(`vehicle-${definition.id}-light`, { width: 1.3, height: 0.22, depth: 0.36 }, this.scene);
+      light.parent = root;
+      light.position.y = 1.58;
+      light.material = accentMaterial;
+    }
     return root;
   }
 
