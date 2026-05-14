@@ -88,6 +88,37 @@ export class VoxelWorld {
     });
   }
 
+  canMoveEntity(from: Vector3, to: Vector3, radius = 0.52): boolean {
+    const delta = to.subtract(from);
+    if (delta.length() > 4) {
+      return false;
+    }
+    const feet = to.y + 0.15;
+    const head = to.y + 2.8;
+    const samples = [
+      [to.x - radius, to.z - radius],
+      [to.x + radius, to.z - radius],
+      [to.x - radius, to.z + radius],
+      [to.x + radius, to.z + radius],
+      [to.x, to.z]
+    ];
+    return !samples.some(([x, z]) => {
+      const gridX = Math.round(x / blockSize);
+      const gridZ = Math.round(z / blockSize);
+      for (const block of this.blocks.values()) {
+        if (block.x !== gridX || block.z !== gridZ || this.floorBlockIds.has(block.typeId)) {
+          continue;
+        }
+        const bottom = block.y * blockSize;
+        const top = bottom + blockSize;
+        if (top > feet && bottom < head) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }
+
   pickFromCamera(position: Vector3, forward: Vector3, distance = 8): PickedBlock | null {
     const ray = new Ray(position, forward.normalize(), distance);
     const hit = this.scene.pickWithRay(ray, (mesh) => mesh.metadata?.voxelKey !== undefined);

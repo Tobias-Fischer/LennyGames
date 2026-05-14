@@ -8,6 +8,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh.js";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder.js";
 import { Scene } from "@babylonjs/core/scene.js";
 import { AudioSystem } from "./AudioSystem";
+import { DecorChunkSystem } from "./DecorChunkSystem";
 import { EntitySystem } from "./EntitySystem";
 import { Hud } from "./Hud";
 import { InputController } from "./InputController";
@@ -15,6 +16,7 @@ import { InteractionSystem } from "./InteractionSystem";
 import { MissionSystem } from "./MissionSystem";
 import type { ThemePack, ToolDefinition, VehicleDefinition } from "./types";
 import { VoxelWorld } from "./VoxelWorld";
+import { WorldLabelSystem } from "./WorldLabelSystem";
 
 interface VehicleInstance {
   definition: VehicleDefinition;
@@ -29,6 +31,8 @@ export class GameApp {
   private readonly hud: Hud;
   private readonly world: VoxelWorld;
   private readonly entities: EntitySystem;
+  private readonly labels: WorldLabelSystem;
+  private readonly decor: DecorChunkSystem;
   private readonly missions: MissionSystem;
   private readonly audio: AudioSystem;
   private readonly interactions: InteractionSystem;
@@ -66,9 +70,12 @@ export class GameApp {
 
     this.setupLighting();
     this.world = new VoxelWorld(this.scene, theme);
-    this.entities = new EntitySystem(this.scene, theme);
+    this.entities = new EntitySystem(this.scene, theme, (from, to, radius) => this.world.canMoveEntity(from, to, radius));
+    this.labels = new WorldLabelSystem(this.scene, theme);
+    this.decor = new DecorChunkSystem(this.scene, theme);
     this.missions = new MissionSystem(theme);
     this.audio = new AudioSystem();
+    this.audio.restoreMusicPreference();
     this.interactions = new InteractionSystem();
     this.vehicles = theme.spawnScene.vehicles.map((vehicle) => ({ definition: vehicle, mesh: this.createVehicle(vehicle) }));
     this.missionMarker = this.createMissionMarker();
@@ -82,6 +89,7 @@ export class GameApp {
       jump: () => this.jump(),
       enterVehicle: () => this.toggleVehicle(),
       toggleMute: () => this.audio.toggleMute(),
+      toggleMusic: () => this.audio.toggleMusic(),
       startPractice: () => this.startFirstMission(true),
       startActual: () => this.startFirstMission(false),
       changeWorld: () => this.onChangeWorld?.(),
@@ -109,6 +117,8 @@ export class GameApp {
     this.hud.dispose();
     this.input.dispose();
     this.entities.dispose();
+    this.labels.dispose();
+    this.decor.dispose();
     this.world.dispose();
     this.audio.dispose();
     this.scene.dispose();
@@ -136,6 +146,7 @@ export class GameApp {
     const playerPosition = this.camera.position.clone();
     this.entities.update(dt, playerPosition);
     this.entities.followCuffed(this.missions.getCuffedCriminalId(), playerPosition);
+    this.decor.update(playerPosition);
     this.missions.update(
       playerPosition,
       new Vector3(this.theme.spawnScene.jailDrop.x, this.theme.spawnScene.jailDrop.y, this.theme.spawnScene.jailDrop.z)
@@ -239,7 +250,7 @@ export class GameApp {
       if (target && this.entities.stunNearest(this.camera.position)) {
         this.createBeam(target.position, "#38bdf8");
         this.say(`${this.selectedTool.label} hit. Use the finish tool!`);
-        this.audio.play("taser");
+        this.audio.play(this.theme.id === "pizza" ? "order" : "taser");
         this.missions.markDisarmed();
       } else {
         this.say(`No target in ${this.selectedTool.label} range.`);
@@ -252,7 +263,7 @@ export class GameApp {
       if (target && this.entities.disarmNearest(this.camera.position)) {
         this.createBeam(target.position, "#f97316");
         this.say(`${this.selectedTool.label} worked. Target is ready!`);
-        this.audio.play("blaster");
+        this.audio.play(this.selectedTool.id.includes("oven") ? "oven" : "blaster");
         this.missions.markDisarmed();
       } else {
         this.say(`No target in ${this.selectedTool.label} range.`);
@@ -264,7 +275,7 @@ export class GameApp {
       const cuffed = this.entities.cuffNearest(this.camera.position);
       if (cuffed) {
         this.say(`${this.selectedTool.label} done. Take the target to the finish zone.`);
-        this.audio.play("cuffs");
+        this.audio.play(this.theme.id === "pizza" ? "delivery" : "cuffs");
         this.missions.markCuffed(cuffed);
       } else {
         this.say("Go closer after using the action tool.");
@@ -370,8 +381,12 @@ export class GameApp {
       missionTitle: mission.title,
       missionText: mission.text,
       interactionText: this.getInteractionText(),
+      selectedToolLabel: this.selectedTool.label,
+      selectedToolIcon: this.selectedTool.icon,
       driving: Boolean(this.activeVehicle),
-      muted: this.audio.muted
+      muted: this.audio.muted,
+      musicEnabled: this.audio.musicEnabled,
+      missionActive: this.missions.isMissionActive()
     });
   }
 
@@ -380,7 +395,7 @@ export class GameApp {
       return this.interactionMessage;
     }
     const target = this.entities.nearestCriminalTarget(this.camera.position, 18);
-    return this.interactions.describe(this.selectedTool, target, Boolean(this.activeVehicle));
+    return this.interactions.describe(this.selectedTool, target, Boolean(this.activeVehicle), this.missions.isMissionActive());
   }
 
   private say(message: string): void {

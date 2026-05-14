@@ -7,7 +7,7 @@ export interface InteractionTarget {
 }
 
 export class InteractionSystem {
-  describe(tool: ToolDefinition, target: InteractionTarget | null, driving: boolean): string {
+  describe(tool: ToolDefinition, target: InteractionTarget | null, driving: boolean, missionActive: boolean): string {
     if (driving) {
       return "Driving: steer with the stick. Tap Exit to hop out.";
     }
@@ -21,6 +21,9 @@ export class InteractionSystem {
       return "Aim at your own block, then Use to break.";
     }
     if (!target?.criminal) {
+      if (missionActive) {
+        return "Follow the mission marker and look for the target.";
+      }
       if (tool.kind === "handcuffs") {
         return `Find the mission target, then go close for ${tool.label}.`;
       }

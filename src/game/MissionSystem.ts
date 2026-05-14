@@ -104,6 +104,13 @@ export class MissionSystem {
     };
   }
 
+  getCurrentObjectiveText(): string | null {
+    if (!this.active || this.active.complete) {
+      return null;
+    }
+    return this.active.definition.objectives[this.active.objectiveIndex]?.text ?? null;
+  }
+
   isActiveActual(): boolean {
     return this.active?.definition.isPractice === false;
   }

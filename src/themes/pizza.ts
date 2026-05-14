@@ -166,6 +166,21 @@ export const pizzaTheme: ThemePack = {
       markerColor: "#ef4444"
     }
   ],
+  labels: [
+    { id: "pizza-shop", text: "Pizza Shop", x: -8, y: 8.5, z: -18.4, yaw: 0, color: "#dc2626", backgroundColor: "#fef3c7" },
+    { id: "pizza-side", text: "Pizza Shop", x: 13, y: 4.4, z: -22, yaw: 0, color: "#dc2626", backgroundColor: "#fef3c7" },
+    { id: "counter", text: "Pizza Counter", x: -19, y: 4.8, z: 2, yaw: Math.PI / 2, color: "#92400e", backgroundColor: "#ffedd5" },
+    { id: "ovens", text: "Ovens", x: -21.2, y: 5.8, z: 4, yaw: Math.PI / 2, color: "#f8fafc", backgroundColor: "#374151" },
+    { id: "bikes", text: "Delivery Bikes", x: 44, y: 4.2, z: -24, yaw: -0.2, color: "#2563eb", backgroundColor: "#fee2e2" },
+    { id: "delivery-pad", text: "Delivery Pad", x: 22, y: 4.4, z: 8, yaw: Math.PI, color: "#1d4ed8", backgroundColor: "#dbeafe" },
+    { id: "delivery-house", text: "Delivery House", x: -72, y: 7.6, z: 44, yaw: Math.PI / 2, color: "#7f1d1d", backgroundColor: "#fef9c3" }
+  ],
+  decor: {
+    kind: "pizza",
+    blockColor: "#f8fafc",
+    accentColor: "#ef4444",
+    roofColor: "#2563eb"
+  },
   practiceArea: {
     id: "counter-order",
     label: "Pizza Counter",

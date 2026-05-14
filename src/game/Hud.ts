@@ -6,6 +6,7 @@ export interface HudActions {
   jump(): void;
   enterVehicle(): void;
   toggleMute(): void;
+  toggleMusic(): void;
   startPractice(): void;
   startActual(): void;
   changeWorld(): void;
@@ -20,7 +21,9 @@ export class Hud {
   private readonly health: HTMLDivElement;
   private readonly alarm: HTMLDivElement;
   private readonly interaction: HTMLDivElement;
+  private readonly selectedTool: HTMLDivElement;
   private readonly mute: HTMLButtonElement;
+  private readonly music: HTMLButtonElement;
   private readonly drive: HTMLButtonElement;
   private readonly toolButtons = new Map<string, HTMLButtonElement>();
 
@@ -53,6 +56,8 @@ export class Hud {
 
     this.interaction = document.createElement("div");
     this.interaction.className = "interaction-prompt";
+    this.selectedTool = document.createElement("div");
+    this.selectedTool.className = "selected-tool";
 
     const hotbar = document.createElement("div");
     hotbar.className = "hotbar";
@@ -76,7 +81,8 @@ export class Hud {
     const jump = this.makeActionButton("Jump", actions.jump);
     this.drive = this.makeActionButton("Ride", actions.enterVehicle);
     this.mute = this.makeActionButton("Sound", actions.toggleMute);
-    rightActions.append(use, jump, this.drive, this.mute);
+    this.music = this.makeActionButton("Music", actions.toggleMusic);
+    rightActions.append(use, jump, this.drive, this.mute, this.music);
 
     const smallControls = document.createElement("div");
     smallControls.className = "small-controls";
@@ -91,7 +97,7 @@ export class Hud {
     desktopHint.className = "desktop-hint";
     desktopHint.textContent = "Desktop: WASD move, drag or click to look, E use, F ride, Space jump.";
 
-    this.root.append(topBar, crosshair, this.interaction, hotbar, rightActions, smallControls, desktopHint);
+    this.root.append(topBar, crosshair, this.interaction, this.selectedTool, hotbar, rightActions, smallControls, desktopHint);
   }
 
   update(state: HudState): void {
@@ -100,8 +106,10 @@ export class Hud {
     this.missionTitle.textContent = state.missionTitle;
     this.missionText.textContent = state.missionText;
     this.interaction.textContent = state.interactionText;
+    this.selectedTool.textContent = `Tool: ${state.selectedToolIcon} ${state.selectedToolLabel}`;
     this.drive.textContent = state.driving ? "Exit" : "Ride";
     this.mute.textContent = state.muted ? "Muted" : "Sound";
+    this.music.textContent = state.musicEnabled ? "Music On" : "Music";
     this.toolButtons.forEach((button, toolId) => {
       button.classList.toggle("selected", toolId === state.selectedToolId);
     });

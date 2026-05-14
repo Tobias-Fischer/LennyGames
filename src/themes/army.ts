@@ -151,6 +151,21 @@ export const armyTheme: ThemePack = {
       markerColor: "#ef4444"
     }
   ],
+  labels: [
+    { id: "barracks", text: "Barracks", x: -30, y: 8.2, z: -20.4, yaw: 0, color: "#26381f", backgroundColor: "#d6d3aa" },
+    { id: "barracks-side", text: "Barracks", x: -4, y: 4.5, z: -28, yaw: 0, color: "#26381f", backgroundColor: "#d6d3aa" },
+    { id: "hangar", text: "Hangar", x: 40, y: 9.2, z: -36.4, yaw: 0, color: "#374151", backgroundColor: "#e5e7eb" },
+    { id: "command", text: "Command", x: -62, y: 7.6, z: 46, yaw: Math.PI / 2, color: "#26381f", backgroundColor: "#d6d3aa" },
+    { id: "training", text: "Training Range", x: -100, y: 5.2, z: -86, yaw: 0, color: "#92400e", backgroundColor: "#fef3c7" },
+    { id: "runway", text: "Runway", x: 96, y: 3.8, z: -20, yaw: 0, color: "#f8fafc", backgroundColor: "#4b5563" },
+    { id: "vehicle-yard", text: "Vehicle Yard", x: 82, y: 4.8, z: 38, yaw: -0.4, color: "#facc15", backgroundColor: "#334155" }
+  ],
+  decor: {
+    kind: "base",
+    blockColor: "#7f8f55",
+    accentColor: "#facc15",
+    roofColor: "#40512f"
+  },
   practiceArea: {
     id: "training-range",
     label: "Training Range",

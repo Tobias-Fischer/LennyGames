@@ -229,6 +229,25 @@ body {
   pointer-events: auto;
 }
 
+.selected-tool {
+  position: absolute;
+  left: 50%;
+  bottom: max(82px, calc(env(safe-area-inset-bottom) + 82px));
+  min-width: 160px;
+  max-width: min(360px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border: 2px solid rgba(16, 24, 40, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #14213d;
+  font-size: 13px;
+  line-height: 1.1;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: 0 5px 16px rgba(16, 24, 40, 0.12);
+}
+
 .tool-button,
 .action-button,
 .small-button {
@@ -287,9 +306,10 @@ body {
 .small-controls {
   position: absolute;
   left: max(12px, env(safe-area-inset-left));
-  bottom: max(14px, env(safe-area-inset-bottom));
-  display: flex;
-  gap: 8px;
+  bottom: max(254px, calc(env(safe-area-inset-bottom) + 254px));
+  display: grid;
+  grid-template-columns: repeat(2, minmax(70px, 1fr));
+  gap: 7px;
   pointer-events: auto;
 }
 
@@ -358,6 +378,22 @@ body {
 
   .hotbar {
     gap: 5px;
+  }
+
+  .small-controls {
+    bottom: max(246px, calc(env(safe-area-inset-bottom) + 246px));
+    grid-template-columns: repeat(2, 68px);
+  }
+
+  .small-button {
+    min-width: 68px;
+    min-height: 34px;
+    font-size: 11px;
+  }
+
+  .selected-tool {
+    bottom: max(76px, calc(env(safe-area-inset-bottom) + 76px));
+    font-size: 12px;
   }
 
   .interaction-prompt {

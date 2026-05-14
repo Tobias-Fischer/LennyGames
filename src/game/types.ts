@@ -78,6 +78,25 @@ export interface VehicleDefinition {
   turnSpeed?: number;
 }
 
+export interface WorldLabel {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  color: string;
+  backgroundColor?: string;
+  size?: number;
+}
+
+export interface DecorProfile {
+  kind: "city" | "base" | "pizza";
+  blockColor: string;
+  accentColor: string;
+  roofColor: string;
+}
+
 export interface SpawnScene {
   playerSpawn: { x: number; y: number; z: number; yaw: number };
   jailDrop: { x: number; y: number; z: number };
@@ -97,6 +116,8 @@ export interface ThemePack {
   missions: MissionDefinition[];
   missionLocations: MissionLocation[];
   practiceArea?: MissionLocation;
+  labels: WorldLabel[];
+  decor: DecorProfile;
   spawnScene: SpawnScene;
 }
 
@@ -115,8 +136,12 @@ export interface HudState {
   missionTitle: string;
   missionText: string;
   interactionText: string;
+  selectedToolLabel: string;
+  selectedToolIcon: string;
   driving: boolean;
   muted: boolean;
+  musicEnabled: boolean;
+  missionActive: boolean;
 }
 
 export interface EntityState {

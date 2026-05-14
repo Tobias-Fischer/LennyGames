@@ -30,7 +30,8 @@ export class EntitySystem {
 
   constructor(
     private readonly scene: Scene,
-    theme: ThemePack
+    theme: ThemePack,
+    private readonly canMove: (from: Vector3, to: Vector3, radius?: number) => boolean = () => true
   ) {
     theme.entities.forEach((entity) => this.definitions.set(entity.id, entity));
     this.missionTargetEntityId = theme.entities.find((entity) => entity.role === "criminal")?.id ?? "criminal";
@@ -60,7 +61,12 @@ export class EntitySystem {
         delta.y = 0;
         if (delta.length() > 0.2) {
           delta.normalize();
-          record.root.position.addInPlace(delta.scale(dt * 0.75));
+          const next = record.root.position.add(delta.scale(dt * 0.75));
+          if (this.canMove(record.root.position, next, 0.56)) {
+            record.root.position.copyFrom(next);
+          } else {
+            record.wanderSeed += 7.3;
+          }
           record.root.rotation.y = Math.atan2(delta.x, delta.z);
         }
         return;
@@ -72,7 +78,12 @@ export class EntitySystem {
       away.y = 0;
       if (away.length() < 14 && away.length() > 0.1) {
         away.normalize();
-        record.root.position.addInPlace(away.scale(record.baseSpeed * dt));
+        const next = record.root.position.add(away.scale(record.baseSpeed * dt));
+        if (this.canMove(record.root.position, next, 0.6)) {
+          record.root.position.copyFrom(next);
+        } else {
+          record.baseSpeed = Math.max(0.6, record.baseSpeed * 0.92);
+        }
         record.root.rotation.y = Math.atan2(away.x, away.z);
       }
     });
@@ -148,7 +159,9 @@ export class EntitySystem {
       return;
     }
     const follow = target.add(new Vector3(-1.3, -1.9, -1.3));
-    criminal.root.position.copyFrom(follow);
+    if (this.canMove(criminal.root.position, follow, 0.56)) {
+      criminal.root.position.copyFrom(follow);
+    }
   }
 
   getState(id: string): EntityState | null {
